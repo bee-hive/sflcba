@@ -175,3 +175,6 @@ figures/
 analysis/
 notebooks/*.ipynb
 .DS_Store
+logs/
+*.log
+.snakemake/
