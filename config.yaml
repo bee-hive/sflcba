@@ -1,0 +1,14 @@
+# config.yaml
+lab_folder_path: "/gladstone/engelhardt/lab/"
+downsample_pct: 0.1
+donor_ids: [1, 2, 3, 4]
+# list of wells to process (this may be generated dynamically in your original code)
+well_ids: ["B4", "D4", "B10", "D10"]
+# SIFT parameters
+sift:
+  pixel_thresh: 3.5
+  lop_off_interval: 116
+# GLCM parameters
+glcm:
+  distances: [1, 2]
+  angles: [0, 0.785398, 1.5708, 2.35619]
