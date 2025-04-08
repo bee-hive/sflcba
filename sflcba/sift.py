@@ -2,6 +2,8 @@
 import numpy as np
 import cv2 as cv
 import tiffile as tiff
+from sklearn.decomposition import PCA
+from sklearn.preprocessing import StandardScaler
 from skimage.feature import SIFT
 
 
@@ -41,3 +43,21 @@ def compute_sift_embedding(image_path, downsample_pct=0.1):
         "n_keypoints_original": n_keypoints
     }
     return result
+
+def add_pca_embedding(adata, n_components=30):
+    """
+    Perform PCA on the SIFT descriptors and add the results to the AnnData object.
+    """
+    # normalize the SIFT detectors
+    scaler = StandardScaler()
+    X=adata.X
+    scaler.fit(X)
+    X=scaler.transform(X)
+
+    # run pca using 30 components
+    pca = PCA(n_components=n_components)
+    x_new = pca.fit_transform(X)
+
+    # add the pca coordinates to the adata object
+    adata.obsm['X_pca'] = x_new
+    return adata

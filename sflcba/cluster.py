@@ -11,7 +11,8 @@ def cluster_sift_embedding(adata, k_values=range(3, 11)):
     for k in k_values:
         kmeans = KMeans(n_clusters=k, random_state=0).fit(adata.X)
         label_key = f'kmeans_{k}'
-        adata.obs[label_key] = kmeans.labels_.astype('category')
+        adata.obs[label_key] = kmeans.labels_
+        adata.obs[label_key] = adata.obs[label_key].astype('category')
         if not hasattr(adata, 'uns'):
             adata.uns = {}
         adata.uns[label_key] = {'wccs': kmeans.inertia_}

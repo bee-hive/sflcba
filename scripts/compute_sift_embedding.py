@@ -5,7 +5,7 @@ import itertools
 import anndata as ad
 import numpy as np
 import pandas as pd
-from sflcba.sift import compute_sift_embedding
+from sflcba.sift import compute_sift_embedding, add_pca_embedding
 from sflcba.utils import sorted_nicely, load_binary_image
 from sflcba.entropy import entropy
 import glob
@@ -153,6 +153,9 @@ def main():
         adata_all = ad.concat(adata_list, join="outer")
     else:
         adata_all = ad.AnnData()
+
+    # add PCA embedding of the sift descriptors
+    adata_all = add_pca_embedding(adata_all, n_components=30)
     
     # Save the combined AnnData object to the specified output file.
     adata_all.write(args.output)

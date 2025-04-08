@@ -48,7 +48,6 @@ rule cluster_sift:
         python scripts/cluster_sift_embedding.py \
             --input {input} \
             --output {output} \
-            --k_values {params.k_values}
+            --k_values {params.k_values} \
             &> {log}
         '''
-
