@@ -17,27 +17,18 @@ jupyter:
 import numpy as np
 import cv2 as cv
 import matplotlib.pyplot as plt
-import matplotlib.cm as cm
-import matplotlib.patches as patches
 import seaborn as sns
 import tiffile as tiff
 import glob
 import re
 import random
-import itertools
 import anndata as ad
 import pandas as pd
-from sklearn.cluster import KMeans
-from sklearn.metrics import silhouette_score
 import scipy
-import scipy.stats as stats
-import statsmodels.api as sm
 import statsmodels.formula.api as smf
-from statsmodels.formula.api import ols
 from statsmodels.stats.multitest import multipletests
 import warnings
 warnings.filterwarnings('default')
-from sklearn.model_selection import KFold
 import os
 
 random.seed(0)
@@ -62,7 +53,8 @@ plt.rcParams['pdf.use14corefonts'] = True
 
 ```python
 # load the anndata file with the SIFT descriptors
-adata = ad.read_h5ad('/gladstone/engelhardt/lab/adamw/saft_figuren/analysis/adata_20250225_kmeans.h5ad')
+# adata = ad.read_h5ad('analysis/adata_20250225_processed_20250310.h5ad')
+adata = ad.read_h5ad('analysis/adata_processed.h5ad')
 adata
 ```
 
@@ -100,7 +92,7 @@ ax.set_xlabel('# SIFT keypoints per image (d_n)')
 ax.set_ylabel('Count')
 ax.set_title('N={} images'.format(len(entropy_df)))
 sns.despine(ax=ax)
-fig.savefig('figures/fig2/n_keypoints_hist.pdf', bbox_inches='tight', dpi=300)
+# fig.savefig('figures/fig2/n_keypoints_hist.pdf', bbox_inches='tight', dpi=300)
 plt.show()
 ```
 
@@ -214,7 +206,7 @@ ax[1].legend(title='E:T', loc='lower left')
 # for i in range(2):
 #     ax[i].set_ylim(3.5, 4.5)
 
-fig.savefig('figures/fig1/entropy_vs_time.pdf', bbox_inches='tight', dpi=200)
+# fig.savefig('figures/fig1/entropy_vs_time.pdf', bbox_inches='tight', dpi=200)
 
 plt.show()
 ```
@@ -324,7 +316,7 @@ for i in range(5):
     plot_representative_fn(entropy_df, rasa_value=100, et_value=1.0, replicate_id=replicate_id, donor_id=donor_id, time_point=times[i], trim=100, ax=ax[3,i], phase=phase)
 
 
-fig.savefig('figures/fig1/rfp_mask_grid.pdf', bbox_inches='tight', dpi=400)
+# fig.savefig('figures/fig1/rfp_mask_grid.pdf', bbox_inches='tight', dpi=400)
 
 plt.show()
 ```
@@ -356,7 +348,7 @@ for i in range(5):
 for i in range(5):
     plot_representative_fn(entropy_df, rasa_value=100, et_value=1.0, replicate_id=replicate_id, donor_id=donor_id, time_point=times[i], trim=100, ax=ax[3,i], phase=phase)
 
-fig.savefig('figures/fig1/rfp_phase_grid.pdf', bbox_inches='tight', dpi=400)
+# fig.savefig('figures/fig1/rfp_phase_grid.pdf', bbox_inches='tight', dpi=400)
 
 plt.show()
 ```
@@ -364,6 +356,7 @@ plt.show()
 ```python
 # sweep over RASA2KO titration at a constant E:T ratio
 fig, ax = plt.subplots(5, 5, figsize=(8,9.5), tight_layout=True)
+
 
 # find 5 evenly spaced time points between 0 and 64
 times = [0, 15, 30, 45, 60]
@@ -373,6 +366,7 @@ replicate_id = 0
 # only show the RFP channel
 phase=False
 # set E:T ratio constant at 1.0
+# 
 et_value = 1.0
 
 rasa_values = np.sort(entropy_df['rasa2ko_titration'].unique())
@@ -383,7 +377,7 @@ for i in range(len(rasa_values)):
     for j in range(5):
         plot_representative_fn(entropy_df, rasa_value=rasa_value, et_value=et_value, replicate_id=replicate_id, donor_id=donor_id, time_point=times[j], trim=100, ax=ax[i,j], phase=phase)
 
-fig.savefig('figures/fig1/rfp_mask_rasa2ko_grid.pdf', bbox_inches='tight', dpi=400)
+# fig.savefig('figures/fig1/rfp_mask_rasa2ko_grid.pdf', bbox_inches='tight', dpi=400)
 
 plt.show()
 ```
@@ -409,7 +403,7 @@ for i in range(len(et_values)):
     for j in range(5):
         plot_representative_fn(entropy_df, rasa_value=rasa_value, et_value=et_value, replicate_id=replicate_id, donor_id=donor_id, time_point=times[j], trim=100, ax=ax[i,j], phase=phase)
 
-fig.savefig('figures/fig1/rfp_mask_et_grid.pdf', bbox_inches='tight', dpi=400)
+# fig.savefig('figures/fig1/rfp_mask_et_grid.pdf', bbox_inches='tight', dpi=400)
 
 plt.show()
 ```
@@ -417,20 +411,28 @@ plt.show()
 ### Use general linear model to regress entropy against all the covariates
 
 ```python
-def coef_plot(model, ax=None):
+def get_coef_df(model):
+    '''
+    Returns a dataframe of coefficients from a statsmodels linear regression model.
+    Also returns the p-values and the adjusted p-values using the Benjamini-Hochberg method.
+    '''
     lin_reg = model
     err_series = lin_reg.params - lin_reg.conf_int()[0]
-    err_series
     coef_df = pd.DataFrame({'coef': lin_reg.params.values[1:-1],
                             'err': err_series.values[1:-1],
                             'varname': err_series.index.values[1:-1],
                             'pvalue': lin_reg.pvalues.values[1:-1]
                            })
+    # Apply Benjamini-Hochberg FDR correction
+    coef_df['p_adj'] = multipletests(coef_df['pvalue'], method='fdr_bh')[1]
+    
+    return coef_df
+
+
+def coef_plot(coef_df, ax=None):
+    
     if ax is None:
         fig, ax = plt.subplots(figsize=(4, 4))
-    
-    # do Bonferroni correction
-    coef_df['pvalue'] = coef_df['pvalue'] * len(coef_df)
     
     coef_df.plot(x='varname', y='coef', kind='bar', 
                  ax=ax, color='none', 
@@ -444,7 +446,7 @@ def coef_plot(model, ax=None):
     # ax.xaxis.set_ticks_position('none')
 
     # annotate p-values in scientific notation
-    for i, pval in enumerate(coef_df['pvalue']):
+    for i, pval in enumerate(coef_df['p_adj']):
         if pval > 0.05:
             continue
         elif pval > 0.01:
@@ -455,23 +457,7 @@ def coef_plot(model, ax=None):
             ax.text(i, coef_df['coef'].max() + 0.005, 'p={:.1e}'.format(pval), va='bottom', ha='center', rotation=90, color='red')
     
     sns.despine(ax=ax, trim=True)
-    
 
-def r2(x, y, degree):
-    results = {}
-
-    coeffs = np.polyfit(x, y, degree)
-     # Polynomial Coefficients
-    results['polynomial'] = coeffs.tolist()
-
-    correlation = np.corrcoef(x, y)[0,1]
-
-     # r
-    results['correlation'] = correlation
-     # r-squared
-    results['determination'] = correlation**2
-
-    return results
 ```
 
 ```python
@@ -485,13 +471,18 @@ mdf1 = smf.mixedlm(formula1,
 mdf1 = mdf1.fit(reml=False)
 print(mdf1.summary())
 fig, ax = plt.subplots(1, 1, figsize=(2.5, 2.5))
-coef_plot(mdf1, ax=ax)
+coef_df1 = get_coef_df(mdf1)
+coef_plot(coef_df1, ax=ax)
 ax.set_title(formula1)
 
-fig.savefig('figures/fig1/entropy_mixedlm_coef.pdf', bbox_inches='tight')
+# fig.savefig('figures/fig1/entropy_mixedlm_coef.pdf', bbox_inches='tight')
 
 plt.show()
 
+```
+
+```python
+coef_df1
 ```
 
 ```python
@@ -503,12 +494,17 @@ mdf2 = smf.mixedlm(formula2,
 mdf2 = mdf2.fit(reml=False)
 print(mdf2.summary())
 fig, ax = plt.subplots(1, 1, figsize=(2.5, 2.5))
-coef_plot(mdf2, ax=ax)
+coef_df2 = get_coef_df(mdf2)
+coef_plot(coef_df2, ax=ax)
 ax.set_title(formula2)
 
-fig.savefig('figures/fig1/rfp_area_mixedlm_coef.pdf', bbox_inches='tight')
+# fig.savefig('figures/fig1/rfp_area_mixedlm_coef.pdf', bbox_inches='tight')
 
 plt.show()
+```
+
+```python
+coef_df2
 ```
 
 ```python
@@ -521,12 +517,17 @@ mdf3 = smf.mixedlm(formula3,
 mdf3 = mdf3.fit(reml=False)
 print(mdf3.summary())
 fig, ax = plt.subplots(1, 1, figsize=(2.5, 2.5))
-coef_plot(mdf3, ax=ax)
+coef_df3 = get_coef_df(mdf3)
+coef_plot(coef_df3, ax=ax)
 ax.set_title(formula3)
 
-fig.savefig('figures/fig1/n_keypoints_mixedlm_coef.pdf', bbox_inches='tight')
+# fig.savefig('figures/fig1/n_keypoints_mixedlm_coef.pdf', bbox_inches='tight')
 
 plt.show()
+```
+
+```python
+coef_df3
 ```
 
 ```python
@@ -547,26 +548,6 @@ sns.despine(ax=ax)
 plt.show()
 ```
 
-```python
-# make a scatterplot of the number of keypoints vs RFP area with the hue being time
-fig, ax = plt.subplots(1, 1, figsize=(2, 2))
-sns.scatterplot(ax=ax, data=entropy_df, x='p_areas', y='n_og_keypoints', hue='time', s=1, alpha=0.5, rasterized=True)
-# annotate with seaborn line of best fit
-sns.regplot(ax=ax, data=entropy_df, x='p_areas', y='n_og_keypoints', line_kws={'color': 'grey', 'lw': 1, 'ls': '--'}, scatter=False)
-# annotate with the R2 value
-ax.text(x=0.8, y=0.65, s=f"R2 = {r2(entropy_df['p_areas'], entropy_df['n_og_keypoints'], 2)['determination']:.2f}", transform=ax.transAxes, ha='center', va='center')
-ax.set_xlabel('RFP+ area (pixels)')
-ax.set_ylabel('# SIFT keypoints (d_n)')
-ax.set_title('N={} images'.format(len(entropy_df)))
-
-# increase the point size shown in the legend
-ax.legend(markerscale=5, title='time')
-
-sns.despine(ax=ax)
-fig.savefig('figures/fig2/n_keypoints_vs_RFP+_scatter.pdf', bbox_inches='tight', dpi=300)
-plt.show()
-```
-
 ### Make a multipanel supplemental figure
 
 ```python
@@ -580,7 +561,7 @@ ax[0].legend(title='RASA2KO\ntitration (%)', loc='upper left')
 ax[1].legend(title='E:T ratio', loc='upper left')
 
 # plot the regression coefficients of RFP area in the top right subplot
-coef_plot(mdf2, ax=ax[2])
+coef_plot(coef_df2, ax=ax[2])
 ax[2].set_title(formula2)
 
 # plot a scatterplot of entropy vs p_areas with the hues being time, et_ratio, and rasa2ko_titration
@@ -594,7 +575,7 @@ for i in range(3,6):
     ax[i].set_title('Cancer cell entropy vs area per image')
     sns.despine(ax=ax[i])
 
-fig.savefig('figures/fig1/rfp_vs_entropy_multipanel.pdf', bbox_inches='tight', dpi=400)
+# fig.savefig('figures/fig1/rfp_vs_entropy_multipanel.pdf', bbox_inches='tight', dpi=400)
 
 plt.show()
 ```

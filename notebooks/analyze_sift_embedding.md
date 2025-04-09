@@ -54,7 +54,8 @@ plt.rcParams['pdf.use14corefonts'] = True
 
 ```python
 # load the anndata file with the SIFT descriptors
-adata = ad.read_h5ad('/gladstone/engelhardt/lab/adamw/saft_figuren/analysis/adata_20250225_processed_20250310.h5ad')
+# adata = ad.read_h5ad('analysis/adata_processed.h5ad')
+adata = ad.read_h5ad('analysis/adata_20250225_processed_20250310.h5ad')
 
 # the number of rows when first loading the data represents the number of SIFT descriptors used for clustering
 num_rows_cluster = adata.obs.shape[0]
@@ -105,7 +106,7 @@ adata.obs.head()
 ### Compute some SIFT summary statistics that show the number of keypoints per image
 
 ```python
-entropy_df = adata.obs[['donor_id', 'time', 'well_id', 'replicate_id','rasa2ko_titration', 'et_ratio', 'entropy', 'p_areas', 'n_og_keypoints']].drop_duplicates()
+entropy_df = adata_full.obs[['donor_id', 'time', 'well_id', 'replicate_id','rasa2ko_titration', 'et_ratio', 'entropy', 'p_areas', 'n_og_keypoints']].drop_duplicates()
 entropy_df
 ```
 

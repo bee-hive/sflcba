@@ -2,7 +2,7 @@ configfile: "config.yaml"
 
 rule all:
     input:
-        "analysis/adata_kmeans.h5ad"
+        "analysis/adata_processed.h5ad"
 
 rule compute_sift:
     input:
@@ -49,5 +49,20 @@ rule cluster_sift:
             --input {input} \
             --output {output} \
             --k_values {params.k_values} \
+            &> {log}
+        '''
+
+rule glcm_and_rfp_stats:
+    input:
+        "analysis/adata_kmeans.h5ad"
+    output:
+        "analysis/adata_processed.h5ad"
+    log:
+        "logs/glcm_and_rfp_stats.log"
+    shell:
+        '''
+        python scripts/glcm_and_rfp_stats.py \
+            --input {input} \
+            --output {output} \
             &> {log}
         '''
