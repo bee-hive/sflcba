@@ -1,4 +1,4 @@
-# sflcba/sift.py
+# sflcba/entropy.py
 import numpy as np
 
 def blockshaped(arr, nrows, ncols):
