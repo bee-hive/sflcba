@@ -12,19 +12,19 @@ conda activate saft
 pip install -r requirements.txt
 ```
 
-Then install the `sf-lcba` package in editable mode
+Then install the `sflcba` package in editable mode
 
 ```
 pip install -e .
 ```
-This command installs the sflcba package as a development (editable) package, meaning that any changes you make to the code in the sflcba folder will be immediately reflected without needing to reinstall the package.
+This command installs `sflcba` as a development (editable) package, meaning that any changes you make to the code in the sflcba folder will be immediately reflected without needing to reinstall the package.
 
 After installing these dependencies, you should be able to lauch jupyter from the `saft` conda environment and run the corresponding notebooks in this repository.
 
 
 ### General usage
 
-All core functions of SF-LCBA are found within the `sflcba` package. This package is split into subpackages for each section of the manuscript. Individual functions from these subpackages can be imported as follows:
+All core functions of SF-LCBA are found within the `sflcba` package. This package is split into subpackages for each section of the manuscript. Individual functions from these subpackages can be imported as long as the `saft` conda environment is activated, regardless of whether the python file is located in the `saft_figuren` folder or not.
 
 ```
 from sflcba.utils import *

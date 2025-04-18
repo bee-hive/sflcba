@@ -53,8 +53,8 @@ plt.rcParams['pdf.use14corefonts'] = True
 
 ```python
 # load the anndata file with the SIFT descriptors
-# adata = ad.read_h5ad('analysis/adata_20250225_processed_20250310.h5ad')
-adata = ad.read_h5ad('analysis/adata_processed.h5ad')
+adata = ad.read_h5ad('analysis/adata_20250225_processed_20250310.h5ad')
+# adata = ad.read_h5ad('analysis/adata_processed.h5ad')
 adata
 ```
 
@@ -92,7 +92,7 @@ ax.set_xlabel('# SIFT keypoints per image (d_n)')
 ax.set_ylabel('Count')
 ax.set_title('N={} images'.format(len(entropy_df)))
 sns.despine(ax=ax)
-# fig.savefig('figures/fig2/n_keypoints_hist.pdf', bbox_inches='tight', dpi=300)
+fig.savefig('figures/fig2/n_keypoints_hist.pdf', bbox_inches='tight', dpi=300)
 plt.show()
 ```
 
@@ -142,11 +142,16 @@ def plot_entropy_vs_time_confidence_interval(entropy_df, column, ax=None,confide
                                              y_col='entropy',
                                              title="Entropy of RFP cancer cell mask",
                                              x_label="Time (frame number)",
-                                             y_label="Spatial entropy (95% confidence interval)",):
+                                             y_label="Spatial entropy (95% confidence interval)",
+                                             palette='viridis'):
     
     if ax is None:
         fig, ax = plt.subplots()
     
+
+    # set the color palette
+    pal = sns.color_palette(palette, n_colors=len(entropy_df[column].unique()))
+    i = 0
     for value, df in entropy_df.groupby(column):
         # find the unique times, sort them, and take only the times that are less than max_time
         unique_times = df[x_col].unique()
@@ -167,8 +172,11 @@ def plot_entropy_vs_time_confidence_interval(entropy_df, column, ax=None,confide
         interval_holder0 = np.array(interval_holder0)
 
         # plot the confidence interval
-        ax.fill_between(unique_times, interval_holder0[:,1], interval_holder0[:,2], alpha=0.6, label=value)
+        ax.fill_between(unique_times, interval_holder0[:,1], interval_holder0[:,2], alpha=0.6, label=value, color=pal[i])
 
+        i += 1
+
+    
     sns.despine(ax=ax)
     ax.set_title(title)
     ax.set_ylabel(y_label)
@@ -177,16 +185,16 @@ def plot_entropy_vs_time_confidence_interval(entropy_df, column, ax=None,confide
 
 fig, ax = plt.subplots(1, 2, figsize=(8,4), tight_layout=True)
 ax = ax.flatten()
-plot_entropy_vs_time_confidence_interval(entropy_df, 'rasa2ko_titration', ax=ax[0], confidence=0.95, max_time=64)
-plot_entropy_vs_time_confidence_interval(entropy_df, 'et_ratio', ax=ax[1], confidence=0.95, max_time=64)
+plot_entropy_vs_time_confidence_interval(entropy_df, 'rasa2ko_titration', ax=ax[0], confidence=0.95, max_time=64, palette='PuBu')
+plot_entropy_vs_time_confidence_interval(entropy_df, 'et_ratio', ax=ax[1], confidence=0.95, max_time=64, palette='YlGn')
 ax[0].legend(title='RASA2KO titration (%)', loc='lower left')
 ax[1].legend(title='E:T ratio', loc='lower left')
 plt.show()
 
 fig, ax = plt.subplots(1, 2, figsize=(8,4), tight_layout=True)
 ax = ax.flatten()
-plot_entropy_vs_time_confidence_interval(entropy_df, 'rasa2ko_titration', ax=ax[0], confidence=0.95, max_time=64, y_col='p_areas', title='Area of RFP cancer cell mask', y_label='# of RFP+ pixels per frame (95% confidence interval)')
-plot_entropy_vs_time_confidence_interval(entropy_df, 'et_ratio', ax=ax[1], confidence=0.95, max_time=64, y_col='p_areas', title='Area of RFP cancer cell mask', y_label='# of RFP+ pixels per frame (95% confidence interval)')
+plot_entropy_vs_time_confidence_interval(entropy_df, 'rasa2ko_titration', ax=ax[0], confidence=0.95, max_time=64, y_col='p_areas', title='Area of RFP cancer cell mask', y_label='# of RFP+ pixels per frame (95% confidence interval)', palette='PuBu')
+plot_entropy_vs_time_confidence_interval(entropy_df, 'et_ratio', ax=ax[1], confidence=0.95, max_time=64, y_col='p_areas', title='Area of RFP cancer cell mask', y_label='# of RFP+ pixels per frame (95% confidence interval)', palette='YlGn')
 ax[0].legend(title='RASA2KO titration (%)', loc='upper left')
 ax[1].legend(title='E:T ratio', loc='upper left')
 plt.show()
@@ -197,8 +205,8 @@ plt.show()
 fig, ax = plt.subplots(2, 1, figsize=(2.5,4), tight_layout=True, sharex=True)
 ax = ax.flatten()
 
-plot_entropy_vs_time_confidence_interval(entropy_df, 'rasa2ko_titration', ax=ax[0], confidence=0.95, max_time=64, y_label="Spatial entropy (95% CI)", x_label="Time")
-plot_entropy_vs_time_confidence_interval(entropy_df, 'et_ratio', ax=ax[1], confidence=0.95, max_time=64, y_label="Spatial entropy (95% CI)", x_label="Time")
+plot_entropy_vs_time_confidence_interval(entropy_df, 'rasa2ko_titration', ax=ax[0], confidence=0.95, max_time=64, y_label="Spatial entropy (95% CI)", x_label="Time", palette='PuBu')
+plot_entropy_vs_time_confidence_interval(entropy_df, 'et_ratio', ax=ax[1], confidence=0.95, max_time=64, y_label="Spatial entropy (95% CI)", x_label="Time", palette='YlGn')
 ax[0].legend(title='RASA2KO', loc='lower left')
 ax[1].legend(title='E:T', loc='lower left')
 
@@ -206,7 +214,7 @@ ax[1].legend(title='E:T', loc='lower left')
 # for i in range(2):
 #     ax[i].set_ylim(3.5, 4.5)
 
-# fig.savefig('figures/fig1/entropy_vs_time.pdf', bbox_inches='tight', dpi=200)
+fig.savefig('figures/fig1/entropy_vs_time.pdf', bbox_inches='tight', dpi=300)
 
 plt.show()
 ```
@@ -366,7 +374,6 @@ replicate_id = 0
 # only show the RFP channel
 phase=False
 # set E:T ratio constant at 1.0
-# 
 et_value = 1.0
 
 rasa_values = np.sort(entropy_df['rasa2ko_titration'].unique())
@@ -445,6 +452,16 @@ def coef_plot(coef_df, ax=None):
     ax.axhline(y=0, linestyle='--', color='grey', linewidth=1)
     # ax.xaxis.set_ticks_position('none')
 
+    # loop through every x-axis tick label and replace the 'C(replicate)[T.1]' substring with 'replicate'
+    xticklabels = []
+    for label in ax.get_xticklabels():
+        if 'C(replicate)[T.1]' in label.get_text():
+            label.set_text(label.get_text().replace('C(replicate)[T.1]', 'replicate'))
+        xticklabels.append(label)
+    ax.set_xticklabels(xticklabels)
+    
+
+
     # annotate p-values in scientific notation
     for i, pval in enumerate(coef_df['p_adj']):
         if pval > 0.05:
@@ -475,7 +492,7 @@ coef_df1 = get_coef_df(mdf1)
 coef_plot(coef_df1, ax=ax)
 ax.set_title(formula1)
 
-# fig.savefig('figures/fig1/entropy_mixedlm_coef.pdf', bbox_inches='tight')
+fig.savefig('figures/fig1/entropy_mixedlm_coef.pdf', bbox_inches='tight')
 
 plt.show()
 
@@ -555,8 +572,8 @@ fig, ax = plt.subplots(2, 3, figsize=(8, 8), tight_layout=True)
 ax = ax.flatten()
 
 # plot RFP area over time in the first two subplots
-plot_entropy_vs_time_confidence_interval(entropy_df, 'rasa2ko_titration', ax=ax[0], confidence=0.95, max_time=64, y_col='p_areas', title='Area of RFP cancer cell mask', y_label='# of RFP+ pixels per frame (95% confidence interval)')
-plot_entropy_vs_time_confidence_interval(entropy_df, 'et_ratio', ax=ax[1], confidence=0.95, max_time=64, y_col='p_areas', title='Area of RFP cancer cell mask', y_label='# of RFP+ pixels per frame (95% confidence interval)')
+plot_entropy_vs_time_confidence_interval(entropy_df, 'rasa2ko_titration', ax=ax[0], confidence=0.95, max_time=64, y_col='p_areas', title='Area of RFP cancer cell mask', y_label='# of RFP+ pixels per frame (95% confidence interval)', palette='PuBu')
+plot_entropy_vs_time_confidence_interval(entropy_df, 'et_ratio', ax=ax[1], confidence=0.95, max_time=64, y_col='p_areas', title='Area of RFP cancer cell mask', y_label='# of RFP+ pixels per frame (95% confidence interval)', palette='YlGn')
 ax[0].legend(title='RASA2KO\ntitration (%)', loc='upper left')
 ax[1].legend(title='E:T ratio', loc='upper left')
 
@@ -566,16 +583,18 @@ ax[2].set_title(formula2)
 
 # plot a scatterplot of entropy vs p_areas with the hues being time, et_ratio, and rasa2ko_titration
 sns.scatterplot(ax=ax[3], data=entropy_df, x='p_areas', y='entropy', hue='time', s=1, alpha=0.5, rasterized=True)
-sns.scatterplot(ax=ax[4], data=entropy_df, x='p_areas', y='entropy', hue='et_ratio', s=1, alpha=0.5, rasterized=True)
-sns.scatterplot(ax=ax[5], data=entropy_df, x='p_areas', y='entropy', hue='rasa2ko_titration', s=1, alpha=0.5, rasterized=True)
+sns.scatterplot(ax=ax[4], data=entropy_df, x='p_areas', y='entropy', hue='et_ratio', s=1, alpha=0.5, rasterized=True, palette='YlGn')
+sns.scatterplot(ax=ax[5], data=entropy_df, x='p_areas', y='entropy', hue='rasa2ko_titration', s=1, alpha=0.5, rasterized=True, palette='PuBu')
 
+legend_labels = ['Time', 'E:T ratio', 'RASA2KO titration (%)']
 for i in range(3,6):
     ax[i].set_xlabel('RFP+ area (# pixels)')
     ax[i].set_ylabel('RFP spatial entropy')
     ax[i].set_title('Cancer cell entropy vs area per image')
+    ax[i].legend(markerscale=5, title=legend_labels[i-3])
     sns.despine(ax=ax[i])
 
-# fig.savefig('figures/fig1/rfp_vs_entropy_multipanel.pdf', bbox_inches='tight', dpi=400)
+fig.savefig('figures/fig1/rfp_vs_entropy_multipanel.pdf', bbox_inches='tight', dpi=400)
 
 plt.show()
 ```

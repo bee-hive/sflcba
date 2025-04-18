@@ -129,7 +129,7 @@ plt.show()
 ```python
 # make a scatterplot of the number of keypoints vs RFP area with the hue being time
 fig, ax = plt.subplots(1, 1, figsize=(2, 2))
-sns.scatterplot(ax=ax, data=entropy_df, x='p_areas', y='n_og_keypoints', hue='time', s=1, alpha=0.5, rasterized=True)
+sns.scatterplot(ax=ax, data=entropy_df, x='p_areas', y='n_og_keypoints', s=1, alpha=0.5, rasterized=True)
 # annotate with seaborn line of best fit
 sns.regplot(ax=ax, data=entropy_df, x='p_areas', y='n_og_keypoints', line_kws={'color': 'grey', 'lw': 1, 'ls': '--'}, scatter=False)
 # compute the pearson correlation coefficient
@@ -139,9 +139,6 @@ ax.text(x=0.8, y=0.65, s=f"r={result.statistic:.2f}", transform=ax.transAxes, ha
 ax.set_xlabel('RFP+ area (pixels)')
 ax.set_ylabel('# SIFT keypoints (d_n)')
 ax.set_title('N={} images'.format(len(entropy_df)))
-
-# increase the point size shown in the legend
-ax.legend(markerscale=5, title='time')
 
 sns.despine(ax=ax)
 # fig.savefig('figures/fig2/n_keypoints_vs_RFP+_scatter.pdf', bbox_inches='tight', dpi=300)
@@ -465,6 +462,8 @@ plot_large_roi_w_keypoints(adata_full.obs, ax[1], well_id='H9', donor_id=1, time
 plot_large_roi_w_keypoints(adata_full.obs, ax[2], well_id='B5', donor_id=1, time_point=5, roi_center=(300,300), roi_radius=200)
 plot_large_roi_w_keypoints(adata_full.obs, ax[3], well_id='B5', donor_id=1, time_point=55, roi_center=(300,300), roi_radius=200)
 
+# fig.savefig('figures/fig2/large_roi_w_keypoints.pdf', bbox_inches='tight', dpi=300)
+
 plt.show()
 ```
 
@@ -764,6 +763,33 @@ sns.despine(ax=ax)
 plt.show()
 ```
 
+```python
+# plot the PCA embedding annotated by roi_radius
+fig, ax = plt.subplots(1, 2, figsize=(8, 4), tight_layout=True)
+
+sns.scatterplot(data=adata.obs, x='PC1', y='PC2', hue='roi_radius', palette='coolwarm', ax=ax[0], s=1, alpha=0.7, rasterized=True)
+ax[0].set_xlabel('PC1')
+ax[0].set_ylabel('PC2')
+ax[0].set_title('SIFT embedding (D={})'.format(num_rows))
+ax[0].legend(title='ROI radius (pixels)', markerscale=5)
+sns.despine(ax=ax[0])
+ax[0].set_xticks([])
+ax[0].set_yticks([])
+
+sns.scatterplot(data=adata.obs, x='PC1', y='PC2', hue='roi_rfp_pos_frac', palette='coolwarm', ax=ax[1], s=1, alpha=0.7, rasterized=True)
+ax[1].set_xlabel('PC1')
+ax[1].set_ylabel('PC2')
+ax[1].set_title('SIFT embedding (D={})'.format(num_rows))
+ax[1].legend(title='ROI RFP+\npixel fraction', markerscale=5)
+sns.despine(ax=ax[1])
+ax[1].set_xticks([])
+ax[1].set_yticks([])
+
+# fig.savefig('figures/fig3/pca_embedding_roi_radius_rfp_frac.pdf', bbox_inches='tight', dpi=300)
+
+plt.show()
+```
+
 ### Look at the Moran's I statistics between clusters to assess the spatial autocorrelation of both the red and phase channels
 
 ```python
@@ -880,10 +906,10 @@ def boxplots_by_cluster_group(adata, cluster_color_dict=cluster_color_dict, ycol
     return fig, ax
 
 fig, ax = boxplots_by_cluster_group(adata, ycol='roi_rfp_pos_frac', huecol='kmeans_7', ylabel='ROI RFP+ fraction', title='Cancer cell abundance near SIFT keypoints')
+# fig.savefig('figures/fig3/rfp_frac_boxplots.pdf', bbox_inches='tight', dpi=300)
 plt.show()
-fig, ax = boxplots_by_cluster_group(adata, ycol='roi_rfp_morans_I', huecol='kmeans_7', ylabel='ROI RFP Moran\'s I', title='Cancer cell spatial autocorrelation near SIFT keypoints')
-plt.show()
-fig, ax = boxplots_by_cluster_group(adata, ycol='roi_bf_morans_I', huecol='kmeans_7', ylabel='ROI BF Moran\'s I', title='Bright field spatial autocorrelation near SIFT keypoints')
+fig, ax = boxplots_by_cluster_group(adata, ycol='distance_from_center', huecol='kmeans_7', ylabel='Distance from center (pixels)', title='SIFT keypoint position in well')
+# fig.savefig('figures/fig3/keypoint_position_boxplots.pdf', bbox_inches='tight', dpi=300)
 plt.show()
 ```
 
@@ -928,11 +954,11 @@ ax = ax.flatten()
 
 hue_cols = ['kmeans_7', 'replicate_id', 'donor_id', 'time', 'rasa2ko_titration', 'et_ratio']
 hue_titles = ['K-means', 'Replicate ID', 'Donor ID', 'Time', 'RASA2KO\ntitration', 'E:T ratio']
-cmaps = ['Dark2', 'Dark2', 'Dark2', 'viridis', 'viridis', 'viridis']
+cmaps = ['Dark2', 'Dark2', 'Dark2', 'flare', 'PuBu', 'YlGn']
 for i, hue in enumerate(hue_cols):
     # randomize the order of adata.obs so that one color isn't consistently plotted on top of another
     # plot_data = adata.obs.sample(frac=1)
-    sns.scatterplot(data=adata.obs, x='PC1', y='PC2', hue=hue, palette=cmaps[i], ax=ax[i], legend=True, alpha=0.7, s=1)
+    sns.scatterplot(data=adata.obs, x='PC1', y='PC2', hue=hue, palette=cmaps[i], ax=ax[i], legend=True, alpha=0.7, s=1, rasterized=True)
     ax[i].set_title('SIFT embedding (D={})'.format(num_rows))
     ax[i].set_xlabel('PC1')
     ax[i].set_ylabel('PC2')
@@ -941,6 +967,7 @@ for i, hue in enumerate(hue_cols):
     ax[i].set_yticks([])
     ax[i].legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0., title=hue_titles[i], markerscale=5)
 
+# fig.savefig('figures/fig4/sift_pca_embedding_matrix.pdf', bbox_inches='tight', dpi=300)
 
 plt.show()
 ```
@@ -1167,7 +1194,15 @@ covariates = results_df['covariate'].unique()
 cmap = plt.cm.get_cmap('Dark2', len(covariates))
 colors = cmap(np.arange(len(covariates)))
 
-cmap = dict(zip(covariates, colors))
+# cmap = dict(zip(covariates, colors))
+
+cmap = {
+    'time': '#9A3671',
+    'donor': 'C5',
+    'replicate': 'C7',
+    'RASA2KO': '#6488A4',
+    'E:T': '#7AB85C'
+}
 
 # subset results_df to only such that chi2 and kruskal tests are separate dataframes
 plot1_df = results_df[results_df['test_type'] == 'chi2']
@@ -1213,6 +1248,7 @@ ax[1].set_xlabel("Effect size (Cohen's D)\n<--depleted | enriched-->")
 ax[1].set_ylabel('Kruskal-Wallis test\n-log10(p_adj)')
 ax[1].set_title('Continuous covariates')
 
+# fig.savefig('figures/fig4/volcanos.pdf', bbox_inches='tight', dpi=300)
 
 plt.show()
 ```
