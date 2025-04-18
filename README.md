@@ -74,4 +74,10 @@ Additional parameters in the `config.yaml` that must be set by the user are `rfp
 
 The pipeline is run using the command `snakemake --use-conda --rerun-incomplete --keep-going`
 
-Running the pipeline will produce several files in an `analysis/` folder. These files are then used as input for jupyter notebooks in the `notebooks/` folder. Running the jupyter notebooks will reproduce all the figures, tables, and statistical tests shown in the manuscript. Keep in mind that the `saft` conda environment must be activated before running both the snakemake pipeline and the jupyter notebooks.
+Running the pipeline will produce several files in an `analysis/` folder. These files are then used as input for jupyter notebooks in the `notebooks/` folder. Running the jupyter notebooks will reproduce all the figures, tables, and statistical tests shown in the manuscript. The notebooks are uploaded to this repository in markdown format to allow for easy version control. If you wish to run the notebooks yourself, you will first need to convert the markdown files to .ipynb files with no output by running
+
+```
+jupytext --to notebook notebooks/*.md
+```
+
+Keep in mind that the `saft` conda environment must be activated before running both the snakemake pipeline and the jupyter notebooks.
