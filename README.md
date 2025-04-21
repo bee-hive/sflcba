@@ -1,4 +1,4 @@
-# saft_figuren
+# SIFT LCBA
 
 Code coresponding to the segmentation free live-cell behavioral analysis (SF-LCBA) manuscript.
 
