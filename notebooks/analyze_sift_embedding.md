@@ -28,9 +28,7 @@ import anndata as ad
 import pandas as pd
 from sklearn.metrics import silhouette_score
 import scipy.stats as stats
-import statsmodels.api as sm
-from statsmodels.formula.api import ols
-from statsmodels.stats.multitest import multipletests
+from sflcba.stats import cluster_enrichment
 
 random.seed(0)
 np.random.seed(0)
@@ -161,14 +159,14 @@ Compute silhouette scores for just a subset of the overall dataset since silhoue
 # k-means clustering of SIFT descriptors
 k_values = np.arange(3, 11)
 
-# # compute the silhouette score for each value of k on adata
-# silhouettes = []
-# for k in k_values:
-#     colname = 'kmeans_{}'.format(k)
-#     # make sure that the clustering results are in category format
-#     adata.obs[colname] = adata.obs[colname].astype('category')
-#     score = silhouette_score(adata.X, adata.obs[colname])
-#     silhouettes.append(score)
+# compute the silhouette score for each value of k on adata
+silhouettes = []
+for k in k_values:
+    colname = 'kmeans_{}'.format(k)
+    # make sure that the clustering results are in category format
+    adata.obs[colname] = adata.obs[colname].astype('category')
+    score = silhouette_score(adata.X, adata.obs[colname])
+    silhouettes.append(score)
 ```
 
 ```python
@@ -177,12 +175,12 @@ k_values = np.arange(3, 11)
 fig, ax = plt.subplots(1, 2, figsize=(4, 2), tight_layout=True)
 ax = ax.flatten()
 
-# # plot the silhouette score for each value of k on adata_B4_donor1
-# ax[0].plot(k_values, silhouettes)
-# ax[0].set_xlabel('Number of clusters (K)')
-# ax[0].set_ylabel('Silhouette score')
-# ax[0].set_title('K-means of SIFT matrix')
-# sns.despine(ax=ax[0])
+# plot the silhouette score for each value of k on adata_B4_donor1
+ax[0].plot(k_values, silhouettes)
+ax[0].set_xlabel('Number of clusters (K)')
+ax[0].set_ylabel('Silhouette score')
+ax[0].set_title('K-means of SIFT matrix')
+sns.despine(ax=ax[0])
 
 # plot the wccs score from adata.uns['kmeans_{k}] for each value of k on the entire dataset
 wccs = [ adata.uns['kmeans_{}'.format(k)]['wccs'] for k in k_values ]
@@ -519,11 +517,6 @@ def plot_entire_well(df, ax, well_id, donor_id, time_point, trim=100, rfp=False)
     ax.axis('off')
 
 
-```
-
-```python
-import os
-os.getcwd()
 ```
 
 ```python
@@ -976,139 +969,22 @@ plt.show()
 
 Perform a series of statistical tests to determine whether certatin clusters are enriched or depleted for their number of SIFT descriptors (i.e. rows in the dataframe) against a series of covariates `'donor_id', 'time', 'well_id', 'rasa2ko_titration', 'et_ratio'`.
 
-A brief explanation is provided below each code block of statistical testing as the methods for generating the p-values and effect sizes vary between statistical test.
-
 ```python
-
-
-# Assume df is your dataframe
-# Columns: ['et_ratio', 'rasa2ko_titration', 'time', 'donor_id', 'well_id', 'kmeans_7']
-df = adata.obs
-
-# # Option: Downsample your data to reduce overpowered tests
-# subsample_size = 10000  # adjust as needed
-# df = df.sample(n=subsample_size)
-
-# Store p-values
-p_values = {}
-
-# 1. ANOVA for Continuous Variables (et_ratio, rasa2ko_titration, time)
-continuous_vars = ['et_ratio', 'rasa2ko_titration', 'time']
-for var in continuous_vars:
-    model = ols(f"{var} ~ C(kmeans_7)", data=df).fit()
-    anova_table = sm.stats.anova_lm(model, typ=2)  # Type 2 ANOVA
-    p_values[var] = anova_table["PR(>F)"][0]  # Extract p-value
-
-# 2. Chi-square Test for Categorical Variables (donor_id, well_id)
-categorical_vars = ['donor_id', 'replicate_id']
-for var in categorical_vars:
-    contingency_table = pd.crosstab(df[var], df["kmeans_7"])
-    chi2, p, dof, expected = stats.chi2_contingency(contingency_table)
-    p_values[var] = p
-
-# 3. Multiple Testing Correction (FDR using Benjamini-Hochberg)
-p_vals_corrected = multipletests(list(p_values.values()), method='fdr_bh')[1]
-
-# Create a results DataFrame
-results = pd.DataFrame({'var_name': p_values.keys(), 'p_val': p_values.values(), 'p_adj': p_vals_corrected})
-
-# Sort results by adjusted p-value
-results = results.sort_values(by='p_adj')
-
-results
-```
-
-#### Explanation:
-1. ANOVA: Tests whether the mean of continuous variables (ratio, titration, time) significantly differs between clusters.
-2. Chi-square Test: Checks if categorical variables (donor, well_id) are distributed differently across clusters.
-3. FDR Correction: Uses the Benjamini-Hochberg method to control for false discovery rate (instead of Bonferroni, which is more conservative).
-
-This will give you a table of p-values and adjusted p-values, helping you determine which covariates are significantly associated with cluster membership.
-
-```python
-df = adata.obs
-
-# # Option: Downsample your data to reduce overpowered tests
-# df = df.sample(n=subsample_size)
-
-# Assume df is your DataFrame with 'kmeans_7' and other variables
-continuous_vars = ['time', 'et_ratio', 'rasa2ko_titration']
-categorical_vars = ['donor_id', 'replicate_id']
-results = []
-
-### Function to compute Cohen's d (standardized effect size)
-def cohens_d(x, y):
-    nx, ny = len(x), len(y)
-    mean_x, mean_y = np.mean(x), np.mean(y)
-    std_x, std_y = np.std(x, ddof=1), np.std(y, ddof=1)
-    pooled_std = np.sqrt(((nx - 1) * std_x**2 + (ny - 1) * std_y**2) / (nx + ny - 2))
-    return (mean_x - mean_y) / pooled_std if pooled_std > 0 else 0
-
-# Iterate over each cluster
-for cluster in df["kmeans_7"].unique():
-    cluster_mask = df["kmeans_7"] == cluster
-
-    # 1. Kruskal-Wallis Test for Continuous Variables
-    for var in continuous_vars:
-        cluster_values = df.loc[cluster_mask, var]
-        other_values = df.loc[~cluster_mask, var]
-
-        if len(cluster_values) > 1 and len(other_values) > 1:  # Ensure enough data points
-            stat, p_val = stats.kruskal(cluster_values, other_values)
-            effect_size = cohens_d(cluster_values, other_values)  # Cohen's d
-
-            results.append([cluster, var, None, p_val, effect_size, 'kruskal', 'cohens_d'])  # 'var_value' is None
-
-    # 2. Chi-square Test for Categorical Variables
-    for var in categorical_vars:
-        for val in df[var].unique():
-            in_cluster = sum((df[var] == val) & cluster_mask)
-            out_cluster = sum((df[var] == val) & ~cluster_mask)
-            not_in_cluster = sum(cluster_mask) - in_cluster
-            not_out_cluster = sum(~cluster_mask) - out_cluster
-            contingency_table = np.array([[in_cluster, not_in_cluster],
-                                          [out_cluster, not_out_cluster]])
-
-            if contingency_table.min() < 5:
-                test_name = 'fisher'
-                oddsratio, p_val = stats.fisher_exact(contingency_table)
-            else:
-                test_name = 'chi2'
-                chi2, p_val, dof, expected = stats.chi2_contingency(contingency_table)
-                oddsratio = (in_cluster * not_out_cluster) / max((out_cluster * not_in_cluster), 1)
-
-            effect_size = np.log2(oddsratio) if oddsratio > 0 else 0  # Log2 odds ratio
-
-            results.append([cluster, var, val, p_val, effect_size, test_name, 'log2_odds'])
-
-# Convert results to DataFrame
-results_df = pd.DataFrame(results, columns=['kmeans_7', 'var_name', 'var_value', 'p_val', 'effect_size', 'test_type', 'effect_type'])
-
-# Apply Benjamini-Hochberg FDR correction
-results_df['p_adj'] = multipletests(results_df['p_val'], method='fdr_bh')[1]
-
-# compute absolute value of effect size
-results_df['abs_effect_size'] = np.abs(results_df['effect_size'])
-
-# compute -log10(p_adj)
-results_df['-log10(p_adj)'] = -np.log10(results_df['p_adj'])
-
-# Sort results by adjusted p-value for easier interpretation
-results_df = results_df.sort_values(by=['-log10(p_adj)', 'abs_effect_size'], ascending=False)
-
+# Perform enrichment analysis of clusters x experimental conditions
+results_df = cluster_enrichment(adata.obs, cluster_column='kmeans_7', 
+                                continuous_vars=['time', 'et_ratio', 'rasa2ko_titration'], 
+                                categorical_vars=['donor_id', 'replicate_id'])
 results_df
-
-
 ```
 
-#### Explanation of Code
-1. Kruskal-Wallis test is used for continuous variables (`time`, `ratio`, `titration`).
+#### Explanation of statistical tests
+1. Kruskal-Wallis test is used for continuous variables (`time`, `et_ratio`, `rasa2ko_titration`).
     - Use Kruskal-Wallis (KW) test: Since time may not be normally distributed, KW is a non-parametric alternative to ANOVA that compares medians across clusters.
     - Effect size: Cohen’s d (standardized mean difference).
         - Measures how much the mean time value differs between the cluster and non-cluster points.
         - Positive d = cluster has later times, negative d = cluster has earlier times.
     - `var_value = None` because continuous variables don’t have discrete values like categorical ones.
-2. Chi-square or Fisher’s exact test is used for categorical variables (`donor`, `replicate_id`).
+2. Chi-square or Fisher’s exact test is used for categorical variables (`donor_id`, `replicate_id`).
     - Iterate through each cluster (kmeans_7) and each variable (ratio, titration, etc.).
     - For each unique value of the variable, create a 2×2 contingency table comparing its presence in the cluster vs. outside it.
     - Perform a statistical test:
@@ -1121,11 +997,11 @@ results_df
             - Negative = depleted in the cluster
 3. Benjamini-Hochberg (FDR) correction is applied to all p-values to control false discovery rate.
 
-#### Interpretation
+#### Example interpretation
 - Cluster 1 has significantly lower time values (p_adj = 0.005, Cohen’s d = -1.2).
-- Cluster 1 is enriched for donor A1 (p_adj = 0.007, log2 odds ratio = 2.5).
+- Cluster 1 is enriched for donor 1 (p_adj = 0.007, log2 odds ratio = 2.5).
 - Cluster 2 has significantly higher titration values (p_adj = 0.02).
-- Cluster 4 shows no significant association with replicate_id 0 (p_adj = 0.87).
+- Cluster 4 shows no significant association with replicate 0 (p_adj = 0.87).
 
 ```python
 results_df[results_df['p_adj'] < 0.05].var_name.value_counts()
