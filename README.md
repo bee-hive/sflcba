@@ -7,8 +7,8 @@ Code coresponding to the segmentation free live-cell behavioral analysis (SF-LCB
 To reproduce this code, we recommend intalling all dependencies into a miniforge conda environment using the instructions as follows.
 
 ```
-conda create --name saft python=3.11.4
-conda activate saft
+conda create --name sflcba python=3.11.4
+conda activate sflcba
 pip install -r requirements.txt
 ```
 
@@ -19,12 +19,12 @@ pip install -e .
 ```
 This command installs `sflcba` as a development (editable) package, meaning that any changes you make to the code in the sflcba folder will be immediately reflected without needing to reinstall the package.
 
-After installing these dependencies, you should be able to lauch jupyter from the `saft` conda environment and run the corresponding notebooks in this repository.
+After installing these dependencies, you should be able to lauch jupyter from the `sflcba` conda environment and run the corresponding notebooks in this repository.
 
 
 ### General usage
 
-All core functions of SF-LCBA are found within the `sflcba` package. This package is split into subpackages for each section of the manuscript. Individual functions from these subpackages can be imported as long as the `saft` conda environment is activated, regardless of whether the python file is located in the `saft_figuren` folder or not.
+All core functions of SF-LCBA are found within the `sflcba` package. This package is split into subpackages for each section of the manuscript. Individual functions from these subpackages can be imported as long as the `sflcba` conda environment is activated, regardless of whether the python file is located in the `sflcba` folder or not.
 
 ```
 from sflcba.utils import *
@@ -80,4 +80,4 @@ Running the pipeline will produce several files in an `analysis/` folder. These 
 jupytext --to notebook notebooks/*.md
 ```
 
-Keep in mind that the `saft` conda environment must be activated before running both the snakemake pipeline and the jupyter notebooks.
+Keep in mind that the `sflcba` conda environment must be activated before running both the snakemake pipeline and the jupyter notebooks.
