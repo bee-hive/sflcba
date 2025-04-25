@@ -92,7 +92,7 @@ ax.set_xlabel('# SIFT keypoints per image (d_n)')
 ax.set_ylabel('Count')
 ax.set_title('N={} images'.format(len(entropy_df)))
 sns.despine(ax=ax)
-fig.savefig('figures/fig2/n_keypoints_hist.pdf', bbox_inches='tight', dpi=300)
+# fig.savefig('figures/fig2/n_keypoints_hist.pdf', bbox_inches='tight', dpi=300)
 plt.show()
 ```
 
@@ -214,7 +214,7 @@ ax[1].legend(title='E:T', loc='lower left')
 # for i in range(2):
 #     ax[i].set_ylim(3.5, 4.5)
 
-fig.savefig('figures/fig1/entropy_vs_time.pdf', bbox_inches='tight', dpi=300)
+# fig.savefig('figures/fig1/entropy_vs_time.pdf', bbox_inches='tight', dpi=300)
 
 plt.show()
 ```
@@ -430,6 +430,13 @@ def get_coef_df(model):
                             'varname': err_series.index.values[1:-1],
                             'pvalue': lin_reg.pvalues.values[1:-1]
                            })
+    # add a row that contains the intercept
+    coef_df = pd.concat([coef_df, pd.DataFrame({'coef': [model.params['Intercept']],
+                                                'err':  [model.bse['Intercept']],
+                                                'varname': ['intercept'],
+                                                'pvalue': [model.pvalues['Intercept']]
+                                               })], ignore_index=True)
+    
     # Apply Benjamini-Hochberg FDR correction
     coef_df['p_adj'] = multipletests(coef_df['pvalue'], method='fdr_bh')[1]
     
@@ -440,6 +447,9 @@ def coef_plot(coef_df, ax=None):
     
     if ax is None:
         fig, ax = plt.subplots(figsize=(4, 4))
+
+    # remove the intercept row from coef_df
+    coef_df = coef_df[coef_df['varname'] != 'intercept']
     
     coef_df.plot(x='varname', y='coef', kind='bar', 
                  ax=ax, color='none', 
@@ -492,7 +502,7 @@ coef_df1 = get_coef_df(mdf1)
 coef_plot(coef_df1, ax=ax)
 ax.set_title(formula1)
 
-fig.savefig('figures/fig1/entropy_mixedlm_coef.pdf', bbox_inches='tight')
+# fig.savefig('figures/fig1/entropy_mixedlm_coef.pdf', bbox_inches='tight')
 
 plt.show()
 
@@ -594,7 +604,7 @@ for i in range(3,6):
     ax[i].legend(markerscale=5, title=legend_labels[i-3])
     sns.despine(ax=ax[i])
 
-fig.savefig('figures/fig1/rfp_vs_entropy_multipanel.pdf', bbox_inches='tight', dpi=400)
+# fig.savefig('figures/fig1/rfp_vs_entropy_multipanel.pdf', bbox_inches='tight', dpi=400)
 
 plt.show()
 ```
