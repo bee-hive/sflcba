@@ -110,7 +110,7 @@ entropy_df
 # plot a histogram of the number of keypoints per image
 fig, ax = plt.subplots(1, 1, figsize=(2, 2))
 entropy_df['n_og_keypoints'].hist(bins=50, ax=ax)
-ax.set_xlabel('# SIFT keypoints per image (d_n)')
+ax.set_xlabel('# SIFT keypoints per image (d$\mathrm{_n}$)')
 ax.set_ylabel('Count')
 ax.set_title('N={} images'.format(len(entropy_df)))
 # turn off axis grid lines
@@ -238,7 +238,7 @@ ax[1].legend(title='E:T', bbox_to_anchor=(1.05, 1), loc='upper left')
 # for i in range(2):
 #     ax[i].set_ylim(3.5, 4.5)
 
-# fig.savefig('figures/fig1/entropy_vs_time.pdf', bbox_inches='tight', dpi=300)
+fig.savefig('figures/fig1/entropy_vs_time.pdf', bbox_inches='tight', dpi=300)
 
 plt.show()
 ```
@@ -269,7 +269,7 @@ def sorted_nicely( l ):
     return sorted(l, key = alphanum_key)
 
 
-def plot_representative_fn(metadata_df, rasa_value, et_value, replicate_id, donor_id, time_point, trim=100, lab_folder_path='/gladstone/engelhardt/lab/', ax=None, phase=True):
+def plot_representative_fn(metadata_df, rasa_value, et_value, replicate_id, donor_id, time_point, trim=100, lab_folder_path='/gladstone/engelhardt/lab/', ax=None, phase=True, hours_per_frame=2):
     '''
     Given a rasa value, et value, replicate id, donor id, and time point, plot the representative bright field + RFP image. 
     The mapping of rasa_value, et_value, and replicate_id to well_id is done using metadata_df which is a DataFrame with columns 'rasa2ko_titration', 'et_ratio', 'replicate_id', and 'well_id'.
@@ -310,7 +310,7 @@ def plot_representative_fn(metadata_df, rasa_value, et_value, replicate_id, dono
     ax.imshow(red_frame[trim:-trim,trim:-trim], cmap='Reds', alpha = 1.0)
     if phase:
         ax.imshow(phase_frame[trim:-trim,trim:-trim], cmap='gray', alpha = .75)
-    ax.set_title('RASA2KO={}%\nE:T={}, t={}'.format(round(rasa_value,1),round(et_value,2),time_point))
+    ax.set_title('RASA2KO={}%\nE:T={}, t={}'.format(round(rasa_value,1),round(et_value,2),time_point*hours_per_frame))
     # remove the axes ticks and labels
     ax.set_axis_off()
     
@@ -325,6 +325,7 @@ plot_representative_fn(entropy_df, rasa_value=100, et_value=1.0, replicate_id=0,
 fig, ax = plt.subplots(4, 5, figsize=(5,5), tight_layout=True)
 
 # find 5 evenly spaced time points between 0 and 64
+# note that times need to be given in units of frames, not hours
 times = [0, 15, 30, 45, 60]
 # donor ID is always 1 and replicate ID is always 0
 donor_id = 1
@@ -333,22 +334,22 @@ phase=False
 
 # top row of subplots have rasa_value=50, et_value=2.0
 for i in range(5):
-    plot_representative_fn(entropy_df, rasa_value=50, et_value=2.0, replicate_id=replicate_id, donor_id=donor_id, time_point=times[i], trim=100, ax=ax[0,i], phase=phase)
+    plot_representative_fn(entropy_df, rasa_value=50, et_value=2.0, replicate_id=replicate_id, donor_id=donor_id, time_point=times[i], trim=100, ax=ax[0,i], phase=phase, hours_per_frame=hours_per_frame)
 
 # second row of subplots have rasa_value=50, et_value=1.0
 for i in range(5):
-    plot_representative_fn(entropy_df, rasa_value=50, et_value=1.0, replicate_id=replicate_id, donor_id=donor_id, time_point=times[i], trim=100, ax=ax[1,i], phase=phase)
+    plot_representative_fn(entropy_df, rasa_value=50, et_value=1.0, replicate_id=replicate_id, donor_id=donor_id, time_point=times[i], trim=100, ax=ax[1,i], phase=phase, hours_per_frame=hours_per_frame)
 
 # third row of subplots have rasa_value=100, et_value=2.0
 for i in range(5):
-    plot_representative_fn(entropy_df, rasa_value=100, et_value=2.0, replicate_id=replicate_id, donor_id=donor_id, time_point=times[i], trim=100, ax=ax[2,i], phase=phase)
+    plot_representative_fn(entropy_df, rasa_value=100, et_value=2.0, replicate_id=replicate_id, donor_id=donor_id, time_point=times[i], trim=100, ax=ax[2,i], phase=phase, hours_per_frame=hours_per_frame)
 
 # fourth row of subplots have rasa_value=100, et_value=1.0
 for i in range(5):
-    plot_representative_fn(entropy_df, rasa_value=100, et_value=1.0, replicate_id=replicate_id, donor_id=donor_id, time_point=times[i], trim=100, ax=ax[3,i], phase=phase)
+    plot_representative_fn(entropy_df, rasa_value=100, et_value=1.0, replicate_id=replicate_id, donor_id=donor_id, time_point=times[i], trim=100, ax=ax[3,i], phase=phase, hours_per_frame=hours_per_frame)
 
 
-# fig.savefig('figures/fig1/rfp_mask_grid.pdf', bbox_inches='tight', dpi=400)
+fig.savefig('figures/fig1/rfp_mask_grid.pdf', bbox_inches='tight', dpi=400)
 
 plt.show()
 ```
@@ -366,21 +367,21 @@ phase=True
 
 # top row of subplots have rasa_value=50, et_value=2.0
 for i in range(5):
-    plot_representative_fn(entropy_df, rasa_value=50, et_value=2.0, replicate_id=replicate_id, donor_id=donor_id, time_point=times[i], trim=100, ax=ax[0,i], phase=phase)
+    plot_representative_fn(entropy_df, rasa_value=50, et_value=2.0, replicate_id=replicate_id, donor_id=donor_id, time_point=times[i], trim=100, ax=ax[0,i], phase=phase, hours_per_frame=hours_per_frame)
 
 # second row of subplots have rasa_value=50, et_value=1.0
 for i in range(5):
-    plot_representative_fn(entropy_df, rasa_value=50, et_value=1.0, replicate_id=replicate_id, donor_id=donor_id, time_point=times[i], trim=100, ax=ax[1,i], phase=phase)
+    plot_representative_fn(entropy_df, rasa_value=50, et_value=1.0, replicate_id=replicate_id, donor_id=donor_id, time_point=times[i], trim=100, ax=ax[1,i], phase=phase, hours_per_frame=hours_per_frame)
 
 # third row of subplots have rasa_value=100, et_value=2.0
 for i in range(5):
-    plot_representative_fn(entropy_df, rasa_value=100, et_value=2.0, replicate_id=replicate_id, donor_id=donor_id, time_point=times[i], trim=100, ax=ax[2,i], phase=phase)
+    plot_representative_fn(entropy_df, rasa_value=100, et_value=2.0, replicate_id=replicate_id, donor_id=donor_id, time_point=times[i], trim=100, ax=ax[2,i], phase=phase, hours_per_frame=hours_per_frame)
 
 # fourth row of subplots have rasa_value=100, et_value=1.0
 for i in range(5):
-    plot_representative_fn(entropy_df, rasa_value=100, et_value=1.0, replicate_id=replicate_id, donor_id=donor_id, time_point=times[i], trim=100, ax=ax[3,i], phase=phase)
+    plot_representative_fn(entropy_df, rasa_value=100, et_value=1.0, replicate_id=replicate_id, donor_id=donor_id, time_point=times[i], trim=100, ax=ax[3,i], phase=phase, hours_per_frame=hours_per_frame)
 
-# fig.savefig('figures/fig1/rfp_phase_grid.pdf', bbox_inches='tight', dpi=400)
+fig.savefig('figures/fig1/rfp_phase_grid.pdf', bbox_inches='tight', dpi=400)
 
 plt.show()
 ```
@@ -406,9 +407,9 @@ for i in range(len(rasa_values)):
     rasa_value = rasa_values[i]
     # top row of subplots have rasa_value=50, et_value=2.0
     for j in range(5):
-        plot_representative_fn(entropy_df, rasa_value=rasa_value, et_value=et_value, replicate_id=replicate_id, donor_id=donor_id, time_point=times[j], trim=100, ax=ax[i,j], phase=phase)
+        plot_representative_fn(entropy_df, rasa_value=rasa_value, et_value=et_value, replicate_id=replicate_id, donor_id=donor_id, time_point=times[j], trim=100, ax=ax[i,j], phase=phase, hours_per_frame=hours_per_frame)
 
-# fig.savefig('figures/fig1/rfp_mask_rasa2ko_grid.pdf', bbox_inches='tight', dpi=400)
+fig.savefig('figures/fig1/rfp_mask_rasa2ko_grid.pdf', bbox_inches='tight', dpi=400)
 
 plt.show()
 ```
@@ -432,9 +433,9 @@ et_values = np.sort(entropy_df['et_ratio'].unique())
 for i in range(len(et_values)):
     et_value = et_values[i]
     for j in range(5):
-        plot_representative_fn(entropy_df, rasa_value=rasa_value, et_value=et_value, replicate_id=replicate_id, donor_id=donor_id, time_point=times[j], trim=100, ax=ax[i,j], phase=phase)
+        plot_representative_fn(entropy_df, rasa_value=rasa_value, et_value=et_value, replicate_id=replicate_id, donor_id=donor_id, time_point=times[j], trim=100, ax=ax[i,j], phase=phase, hours_per_frame=hours_per_frame)
 
-# fig.savefig('figures/fig1/rfp_mask_et_grid.pdf', bbox_inches='tight', dpi=400)
+fig.savefig('figures/fig1/rfp_mask_et_grid.pdf', bbox_inches='tight', dpi=400)
 
 plt.show()
 ```
@@ -526,7 +527,7 @@ coef_df1 = get_coef_df(mdf1)
 coef_plot(coef_df1, ax=ax)
 ax.set_title(formula1)
 
-# fig.savefig('figures/fig1/entropy_mixedlm_coef.pdf', bbox_inches='tight')
+fig.savefig('figures/fig1/entropy_mixedlm_coef.pdf', bbox_inches='tight')
 
 plt.show()
 
@@ -549,7 +550,7 @@ coef_df2 = get_coef_df(mdf2)
 coef_plot(coef_df2, ax=ax)
 ax.set_title(formula2)
 
-# fig.savefig('figures/fig1/rfp_area_mixedlm_coef.pdf', bbox_inches='tight')
+fig.savefig('figures/fig1/rfp_area_mixedlm_coef.pdf', bbox_inches='tight')
 
 plt.show()
 ```
@@ -572,7 +573,7 @@ coef_df3 = get_coef_df(mdf3)
 coef_plot(coef_df3, ax=ax)
 ax.set_title(formula3)
 
-# fig.savefig('figures/fig1/n_keypoints_mixedlm_coef.pdf', bbox_inches='tight')
+fig.savefig('figures/fig1/n_keypoints_mixedlm_coef.pdf', bbox_inches='tight')
 
 plt.show()
 ```
@@ -628,7 +629,7 @@ for i in range(3,6):
     ax[i].legend(markerscale=5, title=legend_labels[i-3])
     sns.despine(ax=ax[i])
 
-# fig.savefig('figures/fig1/rfp_vs_entropy_multipanel.pdf', bbox_inches='tight', dpi=400)
+fig.savefig('figures/fig1/rfp_vs_entropy_multipanel.pdf', bbox_inches='tight', dpi=400)
 
 plt.show()
 ```
