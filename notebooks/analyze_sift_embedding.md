@@ -116,6 +116,7 @@ adata_full = adata.copy()
 # subset the entire adata object to just 50k randomly sampled rows
 # this should help with runtime issues and overpowered statistical testing
 num_rows = 50000
+# num_rows = adata.obs.shape[0]
 adata = adata[np.random.choice(adata.shape[0], num_rows, replace=False), :]
 adata.obs.reset_index(drop=True, inplace=True)
 adata
@@ -145,7 +146,7 @@ ax.set_ylabel('Count')
 ax.set_title('N={} images'.format(len(entropy_df)))
 ax.grid(False)
 sns.despine(ax=ax)
-# fig.savefig('figures/fig2/n_keypoints_hist.pdf', bbox_inches='tight', dpi=300)
+fig.savefig('figures/fig2/n_keypoints_hist.pdf', bbox_inches='tight', dpi=300)
 plt.show()
 ```
 
@@ -164,7 +165,7 @@ ax.set_ylabel('# SIFT keypoints (d$\mathrm{_n}$)')
 ax.set_title('N={} images'.format(len(entropy_df)))
 
 sns.despine(ax=ax)
-# fig.savefig('figures/fig2/n_keypoints_vs_RFP+_scatter.pdf', bbox_inches='tight', dpi=300)
+fig.savefig('figures/fig2/n_keypoints_vs_RFP+_scatter.pdf', bbox_inches='tight', dpi=300)
 plt.show()
 ```
 
@@ -458,7 +459,7 @@ plot_two_random_rois(adata, 0, ax[1, 4], ax[1, 5], add_rfp_mask=True, um_per_pix
 plot_two_random_rois(adata, 3, ax[2, 4], ax[2, 5], add_rfp_mask=True, um_per_pixel=um_per_pixel)
 plot_two_random_rois(adata, 1, ax[2, 2], ax[2, 3], add_rfp_mask=True, um_per_pixel=um_per_pixel)
 
-# fig.savefig('figures/fig2/multipanel_embedding_rois_rfp.pdf', bbox_inches='tight', dpi=300)
+fig.savefig('figures/fig2/multipanel_embedding_rois_rfp.pdf', bbox_inches='tight', dpi=300)
 
 plt.show()
 ```
@@ -491,7 +492,7 @@ plot_two_random_rois(adata, 0, ax[1, 4], ax[1, 5], add_rfp_mask=False, um_per_pi
 plot_two_random_rois(adata, 3, ax[2, 4], ax[2, 5], add_rfp_mask=False, um_per_pixel=um_per_pixel)
 plot_two_random_rois(adata, 1, ax[2, 2], ax[2, 3], add_rfp_mask=False, um_per_pixel=um_per_pixel)
 
-# fig.savefig('figures/fig2/multipanel_embedding_rois_phase.pdf', bbox_inches='tight', dpi=300)
+fig.savefig('figures/fig2/multipanel_embedding_rois_phase.pdf', bbox_inches='tight', dpi=300)
 
 
 plt.show()
@@ -589,7 +590,7 @@ plot_large_roi_w_keypoints(adata_full.obs, ax[1], well_id='H9', donor_id=1, time
 plot_large_roi_w_keypoints(adata_full.obs, ax[2], well_id='B5', donor_id=1, time_point=10, roi_center=(300,300), roi_radius=200, um_per_pixel=um_per_pixel)
 plot_large_roi_w_keypoints(adata_full.obs, ax[3], well_id='B5', donor_id=1, time_point=110, roi_center=(300,300), roi_radius=200, um_per_pixel=um_per_pixel)
 
-# fig.savefig('figures/fig2/large_roi_w_keypoints.pdf', bbox_inches='tight', dpi=300)
+fig.savefig('figures/fig2/large_roi_w_keypoints.pdf', bbox_inches='tight', dpi=300)
 
 plt.show()
 ```
@@ -653,7 +654,7 @@ fig, ax = plt.subplots(1, 2, figsize=(12, 6), tight_layout=True)
 ax = ax.flatten()
 plot_entire_well(adata_full.obs, ax[0], well_id='B4', donor_id=1, time_point=90, trim=100, rfp=False)
 plot_entire_well(adata_full.obs, ax[1], well_id='B4', donor_id=1, time_point=90, trim=100, rfp=True)
-# fig.savefig('figures/B4_donor1_time45.pdf', dpi=300, bbox_inches='tight')
+fig.savefig('figures/B4_donor1_time45.pdf', dpi=300, bbox_inches='tight')
 plt.show()
 ```
 
@@ -912,7 +913,7 @@ sns.despine(ax=ax[1])
 ax[1].set_xticks([])
 ax[1].set_yticks([])
 
-# fig.savefig('figures/fig3/pca_embedding_roi_radius_rfp_frac.pdf', bbox_inches='tight', dpi=300)
+fig.savefig('figures/fig3/pca_embedding_roi_radius_rfp_frac.pdf', bbox_inches='tight', dpi=300)
 
 plt.show()
 ```
@@ -1037,10 +1038,10 @@ def boxplots_by_cluster_group(adata, cluster_color_dict=cluster_color_dict, ycol
     return fig, ax
 
 fig, ax = boxplots_by_cluster_group(adata, ycol='roi_rfp_pos_frac', huecol='kmeans_7', ylabel='ROI RFP+ fraction', title='Cancer cell abundance near SIFT keypoints')
-# fig.savefig('figures/fig3/rfp_frac_boxplots.pdf', bbox_inches='tight', dpi=300)
+fig.savefig('figures/fig3/rfp_frac_boxplots.pdf', bbox_inches='tight', dpi=300)
 plt.show()
 fig, ax = boxplots_by_cluster_group(adata, ycol='distance_from_center', huecol='kmeans_7', ylabel='Distance from center (μm)', title='SIFT keypoint position in well')
-# fig.savefig('figures/fig3/keypoint_position_boxplots.pdf', bbox_inches='tight', dpi=300)
+fig.savefig('figures/fig3/keypoint_position_boxplots.pdf', bbox_inches='tight', dpi=300)
 plt.show()
 ```
 
@@ -1251,7 +1252,7 @@ for i, hue in enumerate(hue_cols):
     ax[i].set_yticks([])
     ax[i].legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0., title=hue_titles[i], markerscale=5)
 
-# fig.savefig('figures/fig4/sift_pca_embedding_matrix.pdf', bbox_inches='tight', dpi=300)
+fig.savefig('figures/fig4/sift_pca_embedding_matrix.pdf', bbox_inches='tight', dpi=300)
 
 plt.show()
 ```
@@ -1319,6 +1320,24 @@ results_df[(results_df['var_name'] == 'et_ratio')]
 ```
 
 ```python
+import sys
+sys.float_info.min
+```
+
+```python
+
+
+# replace NaN values of p_adj with the smallest possible float
+results_df['p_adj'] = results_df['p_adj'].fillna(sys.float_info.min)
+# replace 0 values of p_adj with the smallest possible float
+results_df['p_adj'] = results_df['p_adj'].replace(0, sys.float_info.min)
+# recompute the -log10(p_adj) now that NaN values have been replaced
+results_df['-log10(p_adj)'] = -np.log10(results_df['p_adj'])
+
+results_df[(results_df['var_name'] == 'et_ratio')]
+```
+
+```python
 # make a volcano plot of results_df where we show -log10(p_adj) on the y axis
 # and the effect_size on the x axis
 fig, ax = plt.subplots(1, 3, figsize=(8, 2), tight_layout=True)
@@ -1350,6 +1369,7 @@ ax = ax.flatten()
 
 color_threshold = 10
 text_threshold = 50
+text_threshold = np.inf
 
 var_name_dict = {'time': 'time', 'donor_id': 'donor', 'replicate_id': 'replicate',
                  'rasa2ko_titration': 'RASA2KO', 'et_ratio': 'E:T'}
@@ -1407,22 +1427,130 @@ for i, plot_df in enumerate([plot1_df, plot2_df]):
     ax[i].set_ylim(-10, 250)
 
 
-ax[0].set_xlabel('Effect size (log2 odds ratio)\n<--depleted | enriched-->')
-ax[0].set_ylabel('Chi-square test\n-log10(p_adj)')
+ax[0].set_xlabel('Effect size (log$_2$ odds ratio)\n<--depleted | enriched-->')
+ax[0].set_ylabel('Chi-square test\n-log$\mathrm{_{10}(p_{adj})}$')
 ax[0].set_title('Categorical covariates')
 
 ax[1].set_xlabel("Effect size (Cohen's D)\n<--depleted | enriched-->")
-ax[1].set_ylabel('Kruskal-Wallis test\n-log10(p_adj)')
+ax[1].set_ylabel('Kruskal-Wallis test\n-log$\mathrm{_{10}(p_{adj})}$')
 ax[1].set_title('Continuous covariates')
 
-# fig.savefig('figures/fig4/volcanos.pdf', bbox_inches='tight', dpi=300)
+fig.savefig('figures/fig4/volcanos.pdf', bbox_inches='tight', dpi=300)
 
 plt.show()
 ```
 
 ```python
 # save results_df to analysis file
-# results_df.to_csv('analysis/sift_volcano_table.csv')
+results_df.to_csv('analysis/sift_volcano_table.csv')
+```
+
+### Look into relationship with spatial entropy and number of aggregate keypoints (clusters 5 + 6) in each image
+
+```python
+adata_full.obs.columns.values
+```
+
+```python
+adata.obs.columns.values
+```
+
+```python
+adata_full.obs.shape
+```
+
+```python
+adata.obs[['donor_id', 'time', 'well_id', 'rasa2ko_titration', 'et_ratio', 'entropy', 'p_areas']].drop_duplicates().shape
+```
+
+```python
+adata.obs.filename.unique().shape
+```
+
+```python
+image_df = []
+
+# loop through each unique image (filename)
+for filename, chunk in adata_full.obs.groupby('filename'):
+
+    # create a temporary dataframe to hold the donor_id, time, well_id, rasa2ko_titration, et_ratio, entropy, p_areas for this image
+    temp_df = pd.DataFrame(chunk[['donor_id', 'time', 'well_id', 'rasa2ko_titration', 'et_ratio', 'entropy', 'p_areas', 'filename']].drop_duplicates())
+
+    # count the number of keypoints belonging to each kmeans_7 cluster
+    cluster_counts = chunk.groupby('kmeans_7').size()
+    # add the counts to the temporary dataframe
+    for i, count in cluster_counts.items():
+        temp_df['n_keypoints_cluster_{}'.format(i)] = count
+
+    # append the temporary dataframe to the image_df
+    image_df.append(temp_df)
+
+image_df = pd.concat(image_df, ignore_index=True)
+image_df
+```
+
+```python
+image_df['n_keypoints_aggregates'] = image_df['n_keypoints_cluster_5'] + image_df['n_keypoints_cluster_6']
+image_df['n_keypoints_singlets'] = image_df['n_keypoints_cluster_1'] + image_df['n_keypoints_cluster_4']
+image_df['n_keypoints_edges'] = image_df['n_keypoints_cluster_2'] + image_df['n_keypoints_cluster_3']
+image_df['n_keypoints_total'] = image_df['n_keypoints_aggregates'] + image_df['n_keypoints_singlets'] + image_df['n_keypoints_edges'] + image_df['n_keypoints_cluster_0']
+
+# compute the fraction of keypoints that are singlets, aggregates, and edges
+image_df['frac_singlets'] = image_df['n_keypoints_singlets'] / image_df['n_keypoints_total']
+image_df['frac_aggregates'] = image_df['n_keypoints_aggregates'] / image_df['n_keypoints_total']
+image_df['frac_edges'] = image_df['n_keypoints_edges'] / image_df['n_keypoints_total']
+
+image_df
+```
+
+```python
+fig, ax = plt.subplots(2, 3, figsize=(8, 6), tight_layout=True)
+ax = ax.ravel()
+
+def plot_scatter_with_line_of_best_fit(ax, x, y, hue, alpha=0.5, s=1):
+    sns.scatterplot(ax=ax, x=x, y=y, hue=hue, alpha=alpha, s=s)
+    ax = sns.regplot(ax=ax, x=x, y=y, scatter=False, line_kws={'color': 'grey', 'lw': 1, 'ls': '--'})
+    result = stats.pearsonr(x, y)
+    ax.text(0.5, 0.9, 'r={:.2f}, p={:.2e}'.format(result[0], result[1]), transform=ax.transAxes, fontsize=8, ha='center', va='center')
+    return ax
+
+plot_scatter_with_line_of_best_fit(ax[0], image_df['frac_singlets'], image_df['entropy'], image_df['et_ratio'], alpha=0.5, s=1)
+plot_scatter_with_line_of_best_fit(ax[1], image_df['frac_aggregates'], image_df['entropy'], image_df['et_ratio'], alpha=0.5, s=1)
+plot_scatter_with_line_of_best_fit(ax[2], image_df['frac_edges'], image_df['entropy'], image_df['et_ratio'], alpha=0.5, s=1)
+
+plot_scatter_with_line_of_best_fit(ax[3], image_df['frac_singlets'], image_df['p_areas'], image_df['et_ratio'], alpha=0.5, s=1)
+plot_scatter_with_line_of_best_fit(ax[4], image_df['frac_aggregates'], image_df['p_areas'], image_df['et_ratio'], alpha=0.5, s=1)
+plot_scatter_with_line_of_best_fit(ax[5], image_df['frac_edges'], image_df['p_areas'], image_df['et_ratio'], alpha=0.5, s=1)
+
+# # plot the fraction of the 3 cluster categories vs entropy
+# sns.scatterplot(ax=ax[0],data=image_df, x='frac_singlets', y='entropy', hue='et_ratio', alpha=0.5, s=1)
+# sns.scatterplot(ax=ax[1], data=image_df, x='frac_aggregates', y='entropy', hue='et_ratio', alpha=0.5, s=1)
+# sns.scatterplot(ax=ax[2],data=image_df, x='frac_edges', y='entropy', hue='et_ratio', alpha=0.5, s=1)
+
+# # plot the fraction of the 3 cluster categories vs p_areas
+# sns.scatterplot(ax=ax[3],data=image_df, x='frac_singlets', y='p_areas', hue='et_ratio', alpha=0.5, s=1)
+# sns.scatterplot(ax=ax[4], data=image_df, x='frac_aggregates', y='p_areas', hue='et_ratio', alpha=0.5, s=1)
+# sns.scatterplot(ax=ax[5],data=image_df, x='frac_edges', y='p_areas', hue='et_ratio', alpha=0.5, s=1)
+
+
+
+for a in ax:
+    sns.despine(ax=a)
+    a.set_title('N={} images'.format(image_df.shape[0]))
+    a.legend(title='E:T ratio', markerscale=5)
+
+for i in range(0, 3):
+    ax[i].set_ylabel('RFP spatial entropy')
+for i in range(3, 6):
+    ax[i].set_ylabel('RFP+ area (μm$^2$)')
+for i in [0, 3]:
+    ax[i].set_xlabel('Fraction of SIFT keypoints that are singlets')
+for i in [1, 4]:
+    ax[i].set_xlabel('Fraction of SIFT keypoints that are aggregates')
+for i in [2, 5]:
+    ax[i].set_xlabel('Fraction of SIFT keypoints that are edges')
+
+plt.show()
 ```
 
 ```python
