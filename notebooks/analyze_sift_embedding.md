@@ -146,7 +146,7 @@ ax.set_ylabel('Count')
 ax.set_title('N={} images'.format(len(entropy_df)))
 ax.grid(False)
 sns.despine(ax=ax)
-fig.savefig('figures/fig2/n_keypoints_hist.pdf', bbox_inches='tight', dpi=300)
+# fig.savefig('figures/fig2/n_keypoints_hist.pdf', bbox_inches='tight', dpi=300)
 plt.show()
 ```
 
@@ -165,7 +165,7 @@ ax.set_ylabel('# SIFT keypoints (d$\mathrm{_n}$)')
 ax.set_title('N={} images'.format(len(entropy_df)))
 
 sns.despine(ax=ax)
-fig.savefig('figures/fig2/n_keypoints_vs_RFP+_scatter.pdf', bbox_inches='tight', dpi=300)
+# fig.savefig('figures/fig2/n_keypoints_vs_RFP+_scatter.pdf', bbox_inches='tight', dpi=300)
 plt.show()
 ```
 
@@ -459,7 +459,7 @@ plot_two_random_rois(adata, 0, ax[1, 4], ax[1, 5], add_rfp_mask=True, um_per_pix
 plot_two_random_rois(adata, 3, ax[2, 4], ax[2, 5], add_rfp_mask=True, um_per_pixel=um_per_pixel)
 plot_two_random_rois(adata, 1, ax[2, 2], ax[2, 3], add_rfp_mask=True, um_per_pixel=um_per_pixel)
 
-fig.savefig('figures/fig2/multipanel_embedding_rois_rfp.pdf', bbox_inches='tight', dpi=300)
+# fig.savefig('figures/fig2/multipanel_embedding_rois_rfp.pdf', bbox_inches='tight', dpi=300)
 
 plt.show()
 ```
@@ -492,7 +492,7 @@ plot_two_random_rois(adata, 0, ax[1, 4], ax[1, 5], add_rfp_mask=False, um_per_pi
 plot_two_random_rois(adata, 3, ax[2, 4], ax[2, 5], add_rfp_mask=False, um_per_pixel=um_per_pixel)
 plot_two_random_rois(adata, 1, ax[2, 2], ax[2, 3], add_rfp_mask=False, um_per_pixel=um_per_pixel)
 
-fig.savefig('figures/fig2/multipanel_embedding_rois_phase.pdf', bbox_inches='tight', dpi=300)
+# fig.savefig('figures/fig2/multipanel_embedding_rois_phase.pdf', bbox_inches='tight', dpi=300)
 
 
 plt.show()
@@ -590,7 +590,7 @@ plot_large_roi_w_keypoints(adata_full.obs, ax[1], well_id='H9', donor_id=1, time
 plot_large_roi_w_keypoints(adata_full.obs, ax[2], well_id='B5', donor_id=1, time_point=10, roi_center=(300,300), roi_radius=200, um_per_pixel=um_per_pixel)
 plot_large_roi_w_keypoints(adata_full.obs, ax[3], well_id='B5', donor_id=1, time_point=110, roi_center=(300,300), roi_radius=200, um_per_pixel=um_per_pixel)
 
-fig.savefig('figures/fig2/large_roi_w_keypoints.pdf', bbox_inches='tight', dpi=300)
+# fig.savefig('figures/fig2/large_roi_w_keypoints.pdf', bbox_inches='tight', dpi=300)
 
 plt.show()
 ```
@@ -654,7 +654,7 @@ fig, ax = plt.subplots(1, 2, figsize=(12, 6), tight_layout=True)
 ax = ax.flatten()
 plot_entire_well(adata_full.obs, ax[0], well_id='B4', donor_id=1, time_point=90, trim=100, rfp=False)
 plot_entire_well(adata_full.obs, ax[1], well_id='B4', donor_id=1, time_point=90, trim=100, rfp=True)
-fig.savefig('figures/B4_donor1_time45.pdf', dpi=300, bbox_inches='tight')
+# fig.savefig('figures/B4_donor1_time45.pdf', dpi=300, bbox_inches='tight')
 plt.show()
 ```
 
@@ -913,7 +913,7 @@ sns.despine(ax=ax[1])
 ax[1].set_xticks([])
 ax[1].set_yticks([])
 
-fig.savefig('figures/fig3/pca_embedding_roi_radius_rfp_frac.pdf', bbox_inches='tight', dpi=300)
+# fig.savefig('figures/fig3/pca_embedding_roi_radius_rfp_frac.pdf', bbox_inches='tight', dpi=300)
 
 plt.show()
 ```
@@ -1003,7 +1003,7 @@ plt.show()
 ```python
 
 def boxplots_by_cluster_group(adata, cluster_color_dict=cluster_color_dict, ycol='roi_rfp_pos_frac', huecol='kmeans_7', ylabel='ROI RFP+ fraction', title=None, legend=True):
-    fig, ax = plt.subplots(1, 3, figsize=(4, 4), tight_layout=True, sharey=True)
+    fig, ax = plt.subplots(1, 3, figsize=(4, 2.5), tight_layout=True, sharey=True)
 
     cluster_groups = ['edges', 'singlets', 'aggregates']
 
@@ -1252,7 +1252,7 @@ for i, hue in enumerate(hue_cols):
     ax[i].set_yticks([])
     ax[i].legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0., title=hue_titles[i], markerscale=5)
 
-fig.savefig('figures/fig4/sift_pca_embedding_matrix.pdf', bbox_inches='tight', dpi=300)
+# fig.savefig('figures/fig4/sift_pca_embedding_matrix.pdf', bbox_inches='tight', dpi=300)
 
 plt.show()
 ```
@@ -1435,14 +1435,14 @@ ax[1].set_xlabel("Effect size (Cohen's D)\n<--depleted | enriched-->")
 ax[1].set_ylabel('Kruskal-Wallis test\n-log$\mathrm{_{10}(p_{adj})}$')
 ax[1].set_title('Continuous covariates')
 
-fig.savefig('figures/fig4/volcanos.pdf', bbox_inches='tight', dpi=300)
+# fig.savefig('figures/fig4/volcanos.pdf', bbox_inches='tight', dpi=300)
 
 plt.show()
 ```
 
 ```python
 # save results_df to analysis file
-results_df.to_csv('analysis/sift_volcano_table.csv')
+# results_df.to_csv('analysis/sift_volcano_table.csv')
 ```
 
 ### Look into relationship with spatial entropy and number of aggregate keypoints (clusters 5 + 6) in each image
@@ -1507,14 +1507,14 @@ image_df
 fig, ax = plt.subplots(2, 3, figsize=(8, 6), tight_layout=True)
 ax = ax.ravel()
 
-def plot_scatter_with_line_of_best_fit(ax, x, y, hue, alpha=0.5, s=1):
-    sns.scatterplot(ax=ax, x=x, y=y, hue=hue, alpha=alpha, s=s)
+def plot_scatter_with_line_of_best_fit(ax, x, y, hue, alpha=0.5, s=1, legend=False):
+    sns.scatterplot(ax=ax, x=x, y=y, hue=hue, alpha=alpha, s=s, legend=legend, rasterized=True)
     ax = sns.regplot(ax=ax, x=x, y=y, scatter=False, line_kws={'color': 'grey', 'lw': 1, 'ls': '--'})
     result = stats.pearsonr(x, y)
-    ax.text(0.5, 0.9, 'r={:.2f}, p={:.2e}'.format(result[0], result[1]), transform=ax.transAxes, fontsize=8, ha='center', va='center')
+    ax.text(0.5, 0.9, 'r={:.2f}, p={:.0e}'.format(result[0], result[1]), transform=ax.transAxes, fontsize=8, ha='center', va='center')
     return ax
 
-plot_scatter_with_line_of_best_fit(ax[0], image_df['frac_singlets'], image_df['entropy'], image_df['et_ratio'], alpha=0.5, s=1)
+plot_scatter_with_line_of_best_fit(ax[0], image_df['frac_singlets'], image_df['entropy'], image_df['et_ratio'], alpha=0.5, s=1, legend=True)
 plot_scatter_with_line_of_best_fit(ax[1], image_df['frac_aggregates'], image_df['entropy'], image_df['et_ratio'], alpha=0.5, s=1)
 plot_scatter_with_line_of_best_fit(ax[2], image_df['frac_edges'], image_df['entropy'], image_df['et_ratio'], alpha=0.5, s=1)
 
@@ -1537,8 +1537,9 @@ plot_scatter_with_line_of_best_fit(ax[5], image_df['frac_edges'], image_df['p_ar
 for a in ax:
     sns.despine(ax=a)
     a.set_title('N={} images'.format(image_df.shape[0]))
-    a.legend(title='E:T ratio', markerscale=5)
+    # a.legend(title='E:T ratio', markerscale=5)
 
+ax[0].legend(title='E:T ratio', markerscale=5)
 for i in range(0, 3):
     ax[i].set_ylabel('RFP spatial entropy')
 for i in range(3, 6):
@@ -1550,6 +1551,107 @@ for i in [1, 4]:
 for i in [2, 5]:
     ax[i].set_xlabel('Fraction of SIFT keypoints that are edges')
 
+plt.show()
+```
+
+```python
+# create a separate set of plots that compares frac_aggregates vs entropy but each subplot is a different E:T ratio
+et_ratio_values = sorted(image_df['et_ratio'].unique())
+fig, ax = plt.subplots(1, len(et_ratio_values), figsize=(4*len(et_ratio_values), 4), tight_layout=True)
+for i, et_ratio in enumerate(et_ratio_values):
+    subset_df = image_df[image_df['et_ratio'] == et_ratio]
+    plot_scatter_with_line_of_best_fit(ax[i], subset_df['frac_aggregates'], subset_df['entropy'], subset_df['rasa2ko_titration'], alpha=0.5, s=5)
+    ax[i].set_title('E:T ratio={}'.format(et_ratio))
+    ax[i].set_xlabel('Fraction of SIFT keypoints that are aggregates')
+    ax[i].set_ylabel('RFP spatial entropy')
+    sns.despine(ax=ax[i])
+    ax[i].legend(title='RASA2KO titration', markerscale=2)
+
+plt.show()
+```
+
+```python
+# compute the pearson correlation coefficient between frac_aggregates and entropy at each E:T ratio and plot as line plot
+correlation_df = []
+for et_ratio in et_ratio_values:
+    subset_df = image_df[image_df['et_ratio'] == et_ratio]
+    r, p = stats.pearsonr(subset_df['frac_aggregates'], subset_df['entropy'])
+    temp_df = pd.DataFrame({'et_ratio': [et_ratio], 'pearson_r': [r], 'p_value': [p]})
+    correlation_df.append(temp_df)
+correlation_df = pd.concat(correlation_df)
+fig, ax = plt.subplots(1, 1, figsize=(4, 4), tight_layout=True)
+sns.lineplot(ax=ax, x='et_ratio', y='pearson_r', data=correlation_df, marker='o')
+ax.set_xlabel('E:T ratio')
+ax.set_ylabel('Pearson r')
+ax.set_title('Correlation between fraction of SIFT aggregate keypoints\nand RFP spatial entropy')
+sns.despine(ax=ax)
+plt.show()
+```
+
+```python
+fig, ax = plt.subplots(2, 3, figsize=(8, 5), tight_layout=True)
+ax = ax.ravel()
+
+plot_scatter_with_line_of_best_fit(ax[0], image_df['frac_edges'], image_df['entropy'], image_df['et_ratio'], alpha=0.5, s=1, legend=True)
+plot_scatter_with_line_of_best_fit(ax[1], image_df['frac_singlets'], image_df['entropy'], image_df['et_ratio'], alpha=0.5, s=1)
+plot_scatter_with_line_of_best_fit(ax[2], image_df['frac_aggregates'], image_df['entropy'], image_df['et_ratio'], alpha=0.5, s=1)
+
+
+subset_df = image_df[image_df['et_ratio'] == image_df['et_ratio'].values.min()]
+plot_scatter_with_line_of_best_fit(ax[3], subset_df['frac_aggregates'], subset_df['entropy'], subset_df['rasa2ko_titration'], alpha=0.5, s=1, legend=True)
+ax[3].set_title('E:T ratio={}'.format(subset_df['et_ratio'].values[0]))
+
+subset_df = image_df[image_df['et_ratio'] == image_df['et_ratio'].values.max()]
+plot_scatter_with_line_of_best_fit(ax[5], subset_df['frac_aggregates'], subset_df['entropy'], subset_df['rasa2ko_titration'], alpha=0.5, s=1, legend=True)
+ax[5].set_title('E:T ratio={}'.format(subset_df['et_ratio'].values[0]))
+
+sns.lineplot(ax=ax[4], x='et_ratio', y='pearson_r', data=correlation_df, marker='o')
+ax[4].set_xlabel('E:T ratio')
+ax[4].set_ylabel('Pearson r')
+ax[4].set_title('Correlation between fraction of SIFT\naggregate keypoints and RFP spatial entropy')
+
+for a in ax:
+    sns.despine(ax=a)
+
+for i in [0, 1]:
+    ax[i].set_ylabel('RFP spatial entropy\n<--clustered | random-->')
+for i in [2,3,5]:
+    ax[i].set_xlabel('Fraction of SIFT keypoints that are aggregates')
+    ax[i].set_ylabel('RFP spatial entropy\n<--clustered | random-->')
+for i in [0,1,2]:
+    ax[i].set_title('N={} images'.format(image_df.shape[0]))
+for i in [3,5]:
+    ax[i].legend(title='RASA2KO %', markerscale=5)
+
+ax[0].legend(title='E:T ratio', markerscale=5)
+ax[0].set_xlabel('Fraction of SIFT keypoints that are edges')
+ax[1].set_xlabel('Fraction of SIFT keypoints that are singlets')
+
+fig.savefig('figures/fig3/sift_cluster_fraction_vs_entropy.pdf', bbox_inches='tight', dpi=300)
+
+plt.show()
+```
+
+```python
+# compute the pearson correlation coefficient between frac_aggregates and entropy for each E:T ratio and rasa2ko_titration combination, then plot as a heatmap
+correlation_df = []
+for et_ratio, et_chunk in image_df.groupby('et_ratio'):
+    for rasa2ko_titration, rasa_chunk in et_chunk.groupby('rasa2ko_titration'):
+        if rasa_chunk.shape[0] < 5:
+            continue
+        r, p = stats.pearsonr(rasa_chunk['frac_aggregates'], rasa_chunk['entropy'])
+        temp_df = pd.DataFrame({'et_ratio': [et_ratio],
+                                'rasa2ko_titration': [rasa2ko_titration],
+                                'pearson_r': [r],
+                                'p_value': [p]})
+        correlation_df.append(temp_df)
+correlation_df = pd.concat(correlation_df)
+correlation_dfpivot = correlation_df.pivot(index='rasa2ko_titration', columns='et_ratio', values='pearson_r')
+plt.figure(figsize=(6, 4))
+sns.heatmap(correlation_dfpivot, annot=True, cmap='coolwarm', center=0)
+plt.title('Pearson correlation between\nfraction of aggregates and RFP spatial entropy')
+plt.xlabel('E:T ratio')
+plt.ylabel('RASA2KO titration')
 plt.show()
 ```
 

@@ -294,9 +294,9 @@ adata_up4 = compute_sift_embedding(phase, sift=SIFT(upsampling=4, sigma_in=0.0))
 
 # plot the keypoints for the upsampling=1, upsampling=2 (default), and upsampling=4 superimposed on the same ROI
 fig, ax = plt.subplots(1, 3, figsize=(18, 6), tight_layout=True)
-ax[0], df_roi_up1 = plot_large_roi_w_keypoints(adata_up1.obs, ax[0], roi_center=(300,300), roi_radius=200, phase_image=phase, rfp_image=red)
-ax[1], df_roi_up2 = plot_large_roi_w_keypoints(adata_up2.obs, ax[1], roi_center=(300,300), roi_radius=200, phase_image=phase, rfp_image=red)
-ax[2], df_roi_up4 = plot_large_roi_w_keypoints(adata_up4.obs, ax[2], roi_center=(300,300), roi_radius=200, phase_image=phase, rfp_image=red)
+ax[0], df_roi_up1 = plot_large_roi_w_keypoints(adata_up1.obs, ax[0], roi_center=(500,500), roi_radius=200, phase_image=phase, rfp_image=red)
+ax[1], df_roi_up2 = plot_large_roi_w_keypoints(adata_up2.obs, ax[1], roi_center=(500,500), roi_radius=200, phase_image=phase, rfp_image=red)
+ax[2], df_roi_up4 = plot_large_roi_w_keypoints(adata_up4.obs, ax[2], roi_center=(500,500), roi_radius=200, phase_image=phase, rfp_image=red)
 ax[0].set_title('upsampling=1, sigma_in=0\nD={} keypoints in ROI'.format(df_roi_up1.shape[0]))
 ax[1].set_title('upsampling=2 (default), sigma_in=0\nD={} keypoints in ROI'.format(df_roi_up2.shape[0]))
 ax[2].set_title('upsampling=4, sigma_in=0\nD={} keypoints in ROI'.format(df_roi_up4.shape[0]))
@@ -306,7 +306,7 @@ plt.show()
 Do an experiment where I crop the image prior to passing it into SIFT to see if any of the detected keypoints change.
 
 ```python
-roi_center=(300,300)
+roi_center=(500,500)
 roi_radius=200
 
 cropped_phase = phase[roi_center[0]-roi_radius:roi_center[0]+roi_radius, roi_center[1]-roi_radius:roi_center[1]+roi_radius]
@@ -316,36 +316,77 @@ cropped_red = red[roi_center[0]-roi_radius:roi_center[0]+roi_radius, roi_center[
 adata_cropped = compute_sift_embedding(cropped_phase, sift=SIFT())
 
 # plot the keypoints for the cropped image superimposed on the same ROI
-fig, ax = plt.subplots(1, 2, figsize=(12, 6), tight_layout=True)
+fig, ax = plt.subplots(1, 2, figsize=(8, 4), tight_layout=True)
 
-ax[0], df_roi_default = plot_large_roi_w_keypoints(adata_default.obs, ax[0], roi_center=(300,300), roi_radius=200, phase_image=phase, rfp_image=red)
+ax[0], df_roi_default = plot_large_roi_w_keypoints(adata_default.obs, ax[0], roi_center=roi_center, roi_radius=roi_radius, phase_image=phase, rfp_image=red)
 ax[0].set_title(f'Full image passed into SIFT\nDefault SIFT parameters\nD={df_roi_default.shape[0]} keypoints in ROI')
 
-ax[1], df_roi_cropped = plot_large_roi_w_keypoints(adata_cropped.obs, ax[1], roi_center=(200,200), roi_radius=200, phase_image=cropped_phase, rfp_image=cropped_red)
+# this ROI center is based on the already cropped image so the center should always be (roi_radius,roi_radius)
+ax[1], df_roi_cropped = plot_large_roi_w_keypoints(adata_cropped.obs, ax[1], roi_center=(roi_radius,roi_radius), roi_radius=roi_radius, phase_image=cropped_phase, rfp_image=cropped_red)
 ax[1].set_title(f'Cropped ROI passed into SIFT\nDefault SIFT parameters\nD={df_roi_cropped.shape[0]} keypoints in ROI')
 
 # copy the ax[0] tick labels for ax[1]
 ax[1].set_xticklabels(ax[0].get_xticklabels())
 ax[1].set_yticklabels(ax[0].get_yticklabels())
 
+fig.savefig('figures/fig3/SIFT_cropped_vs_full_image.pdf', dpi=300, bbox_inches='tight')
+
 plt.show()
 
 ```
 
 ```python
-adata_cropped.obs
+df_roi_cropped
 ```
 
 ```python
-adata_cropped.obs.x.describe()
+df_roi_default.x.describe()
 ```
 
 ```python
-adata_default.obs
+df_roi_cropped.x.describe()
 ```
 
 ```python
-adata_default.obs.x.describe()
+df_roi_cropped.y.describe()
+```
+
+```python
+df_roi_default.y.describe()
+```
+
+```python
+df_roi_default
+```
+
+```python
+# align the coordinates of df_roi_cropped to match those of df_roi_default
+df_roi_cropped['x'] = df_roi_cropped['x'] + 300
+df_roi_cropped['y'] = df_roi_cropped['y'] + 300
+
+# round orientations and sigmas to 1 decimal place before merging
+df_roi_default['orientations'] = df_roi_default['orientations'].round(1)
+df_roi_cropped['orientations'] = df_roi_cropped['orientations'].round(1)
+
+df_roi_default['sigmas'] = df_roi_default['sigmas'].round(1)
+df_roi_cropped['sigmas'] = df_roi_cropped['sigmas'].round(1)
+```
+
+```python
+pd.merge(df_roi_default, df_roi_cropped, how='inner', on=['octaves', 'scales', 'x', 'y', 'orientations'], suffixes=('_default', '_cropped'))
+```
+
+```python
+# create a venn diagram showing the overlap between the two sets of keypoints
+# start by computing the number of keypoints in each set and the intersection of the two sets
+n_keypoints_default = len(df_roi_default)
+n_keypoints_cropped = len(df_roi_cropped)
+n_keypoints_intersection = len(pd.merge(df_roi_default, df_roi_cropped, how='inner', on=['octaves', 'scales', 'x', 'y', 'orientations'], suffixes=('_default', '_cropped')))
+
+print(f'Number of keypoints exclusive to default set: {n_keypoints_default - n_keypoints_intersection}')
+print(f'Number of keypoints exclusive to cropped set: {n_keypoints_cropped - n_keypoints_intersection}')
+print(f'Number of keypoints in intersection: {n_keypoints_intersection}')
+
 ```
 
 ```python
