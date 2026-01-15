@@ -61,6 +61,28 @@ num_rows_cluster = adata.obs.shape[0]
 adata
 ```
 
+### Convert time and distance units from frames and pixels to hours and um
+
+```python
+# image spatialresolution is 4.975 um per pixel
+um_per_pixel = 4.975
+
+# convert the x and y coordinates from pixels to um
+adata.obs['x_um'] = adata.obs['x'] * um_per_pixel
+adata.obs['y_um'] = adata.obs['y'] * um_per_pixel
+
+# convert the p_area from pixels^2 to μm$^2$
+adata.obs['p_areas'] = adata.obs['p_areas'] * (um_per_pixel**2)
+```
+
+```python
+# image time resolution is 2 hours per frame
+hours_per_frame = 2
+
+# convert the time from frames to hours
+adata.obs['time'] = adata.obs['time'] * hours_per_frame
+```
+
 ```python
 # plot the shape of the PCA embeddings after dropping NaN values
 adata.obsm['X_pca'][:, 0]
@@ -70,6 +92,8 @@ adata.obsm['X_pca'][:, 0]
 # move PC1 and PC2 from adata.obsm['X_pca'] to adata.obs['PC1'] and adata.obs['PC2']
 adata.obs['PC1'] = adata.obsm['X_pca'][:, 0]
 adata.obs['PC2'] = adata.obsm['X_pca'][:, 1]
+adata.obs['PC3'] = adata.obsm['X_pca'][:, 2]
+adata.obs['PC4'] = adata.obsm['X_pca'][:, 3]
 ```
 
 ```python
@@ -92,6 +116,7 @@ adata_full = adata.copy()
 # subset the entire adata object to just 50k randomly sampled rows
 # this should help with runtime issues and overpowered statistical testing
 num_rows = 50000
+# num_rows = adata.obs.shape[0]
 adata = adata[np.random.choice(adata.shape[0], num_rows, replace=False), :]
 adata.obs.reset_index(drop=True, inplace=True)
 adata
@@ -116,9 +141,10 @@ entropy_df['n_og_keypoints'].describe()
 # plot a histogram of the number of keypoints per image
 fig, ax = plt.subplots(1, 1, figsize=(2, 2))
 entropy_df['n_og_keypoints'].hist(bins=50, ax=ax)
-ax.set_xlabel('# SIFT keypoints per image (d_n)')
+ax.set_xlabel('# SIFT keypoints per image (d$\mathrm{_n}$)')
 ax.set_ylabel('Count')
 ax.set_title('N={} images'.format(len(entropy_df)))
+ax.grid(False)
 sns.despine(ax=ax)
 # fig.savefig('figures/fig2/n_keypoints_hist.pdf', bbox_inches='tight', dpi=300)
 plt.show()
@@ -134,8 +160,8 @@ sns.regplot(ax=ax, data=entropy_df, x='p_areas', y='n_og_keypoints', line_kws={'
 result = stats.pearsonr(entropy_df['p_areas'], entropy_df['n_og_keypoints'])
 # annotate with the R2 value
 ax.text(x=0.8, y=0.65, s=f"r={result.statistic:.2f}", transform=ax.transAxes, ha='center', va='center')
-ax.set_xlabel('RFP+ area (pixels)')
-ax.set_ylabel('# SIFT keypoints (d_n)')
+ax.set_xlabel('RFP+ area (μm$^2$)')
+ax.set_ylabel('# SIFT keypoints (d$\mathrm{_n}$)')
 ax.set_title('N={} images'.format(len(entropy_df)))
 
 sns.despine(ax=ax)
@@ -159,14 +185,14 @@ Compute silhouette scores for just a subset of the overall dataset since silhoue
 # k-means clustering of SIFT descriptors
 k_values = np.arange(3, 11)
 
-# compute the silhouette score for each value of k on adata
-silhouettes = []
-for k in k_values:
-    colname = 'kmeans_{}'.format(k)
-    # make sure that the clustering results are in category format
-    adata.obs[colname] = adata.obs[colname].astype('category')
-    score = silhouette_score(adata.X, adata.obs[colname])
-    silhouettes.append(score)
+# # compute the silhouette score for each value of k on adata
+# silhouettes = []
+# for k in k_values:
+#     colname = 'kmeans_{}'.format(k)
+#     # make sure that the clustering results are in category format
+#     adata.obs[colname] = adata.obs[colname].astype('category')
+#     score = silhouette_score(adata.X, adata.obs[colname])
+#     silhouettes.append(score)
 ```
 
 ```python
@@ -175,12 +201,12 @@ for k in k_values:
 fig, ax = plt.subplots(1, 2, figsize=(4, 2), tight_layout=True)
 ax = ax.flatten()
 
-# plot the silhouette score for each value of k on adata_B4_donor1
-ax[0].plot(k_values, silhouettes)
-ax[0].set_xlabel('Number of clusters (K)')
-ax[0].set_ylabel('Silhouette score')
-ax[0].set_title('K-means of SIFT matrix')
-sns.despine(ax=ax[0])
+# # plot the silhouette score for each value of k on adata_B4_donor1
+# ax[0].plot(k_values, silhouettes)
+# ax[0].set_xlabel('Number of clusters (K)')
+# ax[0].set_ylabel('Silhouette score')
+# ax[0].set_title('K-means of SIFT matrix')
+# sns.despine(ax=ax[0])
 
 # plot the wccs score from adata.uns['kmeans_{k}] for each value of k on the entire dataset
 wccs = [ adata.uns['kmeans_{}'.format(k)]['wccs'] for k in k_values ]
@@ -200,8 +226,61 @@ plt.show()
 ```
 
 ```python
+# re-run PCA so we can compute the variance explained by each PC
+from sklearn.decomposition import PCA
+from sklearn.preprocessing import StandardScaler
+# normalize the SIFT detectors
+scaler = StandardScaler()
+X=adata.X
+scaler.fit(X)
+X=scaler.transform(X)
+
+# run pca using 30 components
+pca = PCA(n_components=30)
+x_new = pca.fit_transform(X)
+
+# plot the explained variance ratio
+fig, ax = plt.subplots(1, 1, figsize=(3, 3), tight_layout=True)
+ax.scatter(np.arange(1, len(pca.explained_variance_ratio_)+1, 1), pca.explained_variance_ratio_)
+ax.set_xlabel('PC')
+ax.set_ylabel('Explained variance ratio')
+sns.despine(ax=ax)
+# ax.set_xticks(np.arange(1, len(pca.explained_variance_ratio_)+1, 1))
+ax.set_title('PCA of SIFT descriptor matrix')
+
+# plut the cumulative explained variance
+fig, ax = plt.subplots(1, 1, figsize=(3, 3), tight_layout=True)
+ax.scatter(np.arange(1, len(pca.explained_variance_ratio_)+1, 1), np.cumsum(pca.explained_variance_ratio_))
+ax.set_xlabel('PC')
+ax.set_ylabel('Cumulative explained variance ratio')
+sns.despine(ax=ax)
+# ax.set_xticks(np.arange(1, len(pca.explained_variance_ratio_)+1, 1))
+ax.set_title('PCA of SIFT descriptor matrix')
+# set the y-axis to be between 0 and 1
+ax.set_ylim(0, 1)
+
+plt.show()
+```
+
+```python
 # show the PCA embeddings colored by K-means cluster
-fig, ax = plt.subplots(4, 2, figsize=(6, 8), tight_layout=True)
+fig, ax = plt.subplots(4, 4, figsize=(8, 8), tight_layout=True)
+
+
+# merge the bottom row from four columns into two columns
+
+# create a new gridspec for the bottom left subplot
+gs = ax[3, 0].get_gridspec()
+for j in range(0, 2):
+    ax[3, j].remove()
+axbottomleft = fig.add_subplot(gs[3, 0:2])
+
+# create a new gridspec for the bottom right subplot
+gs = ax[3, 2].get_gridspec()
+for j in range(2, 4):
+    ax[3, j].remove()
+axbottomright = fig.add_subplot(gs[3, 2:4])
+
 ax = ax.flatten()
 
 for i, k in enumerate(k_values[:8]):
@@ -212,7 +291,41 @@ for i, k in enumerate(k_values[:8]):
     ax[i].set_xticks([])
     ax[i].set_yticks([])
     ax[i].set_title('K-means with k={}'.format(k))
-    ax[i].legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0., title='Cluster ID', markerscale=5)
+    if k == 10:
+        ax[i].legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0., title='Cluster ID', markerscale=5)
+    else:
+        # remove the legend
+        ax[i].legend_.remove()
+
+# plot the PCA embeddings for higher PC dimensions
+sns.scatterplot(data=adata.obs, x='PC1', y='PC3', hue='kmeans_7', palette='Dark2', alpha=0.7, s=1, ax=ax[8], rasterized=True)
+sns.scatterplot(data=adata.obs, x='PC1', y='PC4', hue='kmeans_7', palette='Dark2', alpha=0.7, s=1, ax=ax[9], rasterized=True)
+sns.scatterplot(data=adata.obs, x='PC2', y='PC3', hue='kmeans_7', palette='Dark2', alpha=0.7, s=1, ax=ax[10], rasterized=True)
+sns.scatterplot(data=adata.obs, x='PC2', y='PC4', hue='kmeans_7', palette='Dark2', alpha=0.7, s=1, ax=ax[11], rasterized=True)
+
+for i in range(8, 12):
+    sns.despine(ax=ax[i])
+    ax[i].set_xticks([])
+    ax[i].set_yticks([])
+    ax[i].set_title('K-means with k=7')
+    ax[i].legend_.remove()
+
+# plot the explained variance ratio and cumulative explained variance for the top 30 PCs
+axbottomleft.scatter(np.arange(1, len(pca.explained_variance_ratio_)+1, 1), pca.explained_variance_ratio_, s=5)
+axbottomleft.set_xlabel('PC')
+axbottomleft.set_ylabel('Explained variance ratio')
+sns.despine(ax=axbottomleft)
+axbottomleft.set_title('PCA of SIFT descriptor matrix')
+
+# plut the cumulative explained variance
+axbottomright.scatter(np.arange(1, len(pca.explained_variance_ratio_)+1, 1), np.cumsum(pca.explained_variance_ratio_), s=5)
+axbottomright.set_xlabel('PC')
+axbottomright.set_ylabel('Cumulative explained variance')
+sns.despine(ax=axbottomright)
+# ax.set_xticks(np.arange(1, len(pca.explained_variance_ratio_)+1, 1))
+axbottomright.set_title('PCA of SIFT descriptor matrix')
+# set the y-axis to be between 0 and 1
+axbottomright.set_ylim(0, 1)
 
 # fig.savefig('figures/fig2/kmeans_pca_embeddings.pdf', bbox_inches='tight', dpi=300)
 
@@ -227,7 +340,7 @@ Despite the silhouette score being highest for `k=4` clusters, we chose to move 
 This will help us qualitatively describe the meaning of each cluster
 
 ```python
-def plot_sift_roi(row, ax, offset=None, cluster_col='kmeans_7', add_rfp_mask=False):
+def plot_sift_roi(row, ax, offset=None, cluster_col='kmeans_7', add_rfp_mask=False, um_per_pixel=4.975):
     '''
     Plot the SIFT descriptors for a single ROI. Input is a single row of the adata.obs dataframe that contains the columns: filename, x, y,
     '''
@@ -291,21 +404,33 @@ def plot_sift_roi(row, ax, offset=None, cluster_col='kmeans_7', add_rfp_mask=Fal
 
 
     sns.despine(ax=ax)
-    ax.set_title('cluster={}\nRASA2KO={}, E:T={}\ndonor={}, well={}, t={}\nx={}, y={}'.format(row[cluster_col], round(row['rasa2ko_titration'], 2), round(row['et_ratio'], 2), row['donor_id'], row['well_id'], row['time'], row['x'], row['y']), fontsize=6)
+    ax.set_title('cluster={}\nRASA2KO={}, E:T={}\ndonor={}, well={}, t={}'.format(row[cluster_col], round(row['rasa2ko_titration'], 2), round(row['et_ratio'], 2), row['donor_id'], row['well_id'], row['time']), fontsize=6)
     # set color of the title based on the cluster_col value and the Dark2 colormap
     ax.title.set_color(color)
 
+    # multiply all the x and y ticklabels by um_per_pixel
+    # Get current x-tick locations
+    original_xticks = ax.get_xticks()
+    # Calculate new tick labels by multiplying by 2
+    new_xticklabels = [f"{tick * um_per_pixel:.0f}" for tick in original_xticks] # Format as integers
+    # Set the new tick labels
+    ax.set_xticklabels(new_xticklabels)
+    # get current y-tick locations
+    original_yticks = ax.get_yticks()
+    new_yticklabels = [f"{tick * um_per_pixel:.0f}" for tick in original_yticks] # Format as integers
+    ax.set_yticklabels(new_yticklabels)
+
 fig, ax = plt.subplots(1, 1, figsize=(4, 4), tight_layout=True)
-plot_sift_roi(adata.obs.iloc[0], ax, offset=15, add_rfp_mask=True)
+plot_sift_roi(adata.obs.iloc[0], ax, offset=15, add_rfp_mask=True, um_per_pixel=um_per_pixel)
 ```
 
 ```python
-def plot_two_random_rois(adata, cluster_id, ax1, ax2, cluster_col='kmeans_7', offset=15, add_rfp_mask=False):
+def plot_two_random_rois(adata, cluster_id, ax1, ax2, cluster_col='kmeans_7', offset=15, add_rfp_mask=False, um_per_pixel=um_per_pixel):
     ''' Plot two random ROIs belonging to the cluster_col==cluster_id '''
     temp_df = adata.obs[adata.obs[cluster_col]==cluster_id]
     # temp_df = temp_df.iloc[np.random.choice(temp_df.shape[0], 2, replace=False), :]
-    plot_sift_roi(temp_df.iloc[2], ax1, offset=offset, add_rfp_mask=add_rfp_mask)
-    plot_sift_roi(temp_df.iloc[3], ax2, offset=offset, add_rfp_mask=add_rfp_mask)
+    plot_sift_roi(temp_df.iloc[2], ax1, offset=offset, add_rfp_mask=add_rfp_mask, um_per_pixel=um_per_pixel)
+    plot_sift_roi(temp_df.iloc[3], ax2, offset=offset, add_rfp_mask=add_rfp_mask, um_per_pixel=um_per_pixel)
 
 # create a 7x3 grid of subplots where the middle 3 rows and columns are merged into one 3x3 subplot 
 fig, ax = plt.subplots(3, 6, figsize=(8.5, 4.25), tight_layout=True)
@@ -326,13 +451,13 @@ axbig.set_xticks([])
 axbig.set_yticks([])
 
 # plot ROIs on the left and right of the big center subplot
-plot_two_random_rois(adata, 5, ax[0, 0], ax[0, 1], add_rfp_mask=True)
-plot_two_random_rois(adata, 6, ax[1, 0], ax[1, 1], add_rfp_mask=True)
-plot_two_random_rois(adata, 4, ax[2, 0], ax[2, 1], add_rfp_mask=True)
-plot_two_random_rois(adata, 2, ax[0, 4], ax[0, 5], add_rfp_mask=True)
-plot_two_random_rois(adata, 0, ax[1, 4], ax[1, 5], add_rfp_mask=True)
-plot_two_random_rois(adata, 3, ax[2, 4], ax[2, 5], add_rfp_mask=True)
-plot_two_random_rois(adata, 1, ax[2, 2], ax[2, 3], add_rfp_mask=True)
+plot_two_random_rois(adata, 5, ax[0, 0], ax[0, 1], add_rfp_mask=True, um_per_pixel=um_per_pixel)
+plot_two_random_rois(adata, 6, ax[1, 0], ax[1, 1], add_rfp_mask=True, um_per_pixel=um_per_pixel)
+plot_two_random_rois(adata, 4, ax[2, 0], ax[2, 1], add_rfp_mask=True, um_per_pixel=um_per_pixel)
+plot_two_random_rois(adata, 2, ax[0, 4], ax[0, 5], add_rfp_mask=True, um_per_pixel=um_per_pixel)
+plot_two_random_rois(adata, 0, ax[1, 4], ax[1, 5], add_rfp_mask=True, um_per_pixel=um_per_pixel)
+plot_two_random_rois(adata, 3, ax[2, 4], ax[2, 5], add_rfp_mask=True, um_per_pixel=um_per_pixel)
+plot_two_random_rois(adata, 1, ax[2, 2], ax[2, 3], add_rfp_mask=True, um_per_pixel=um_per_pixel)
 
 # fig.savefig('figures/fig2/multipanel_embedding_rois_rfp.pdf', bbox_inches='tight', dpi=300)
 
@@ -359,13 +484,13 @@ axbig.set_xticks([])
 axbig.set_yticks([])
 
 # plot ROIs on the left and right of the big center subplot
-plot_two_random_rois(adata, 5, ax[0, 0], ax[0, 1], add_rfp_mask=False)
-plot_two_random_rois(adata, 6, ax[1, 0], ax[1, 1], add_rfp_mask=False)
-plot_two_random_rois(adata, 4, ax[2, 0], ax[2, 1], add_rfp_mask=False)
-plot_two_random_rois(adata, 2, ax[0, 4], ax[0, 5], add_rfp_mask=False)
-plot_two_random_rois(adata, 0, ax[1, 4], ax[1, 5], add_rfp_mask=False)
-plot_two_random_rois(adata, 3, ax[2, 4], ax[2, 5], add_rfp_mask=False)
-plot_two_random_rois(adata, 1, ax[2, 2], ax[2, 3], add_rfp_mask=False)
+plot_two_random_rois(adata, 5, ax[0, 0], ax[0, 1], add_rfp_mask=False, um_per_pixel=um_per_pixel)
+plot_two_random_rois(adata, 6, ax[1, 0], ax[1, 1], add_rfp_mask=False, um_per_pixel=um_per_pixel)
+plot_two_random_rois(adata, 4, ax[2, 0], ax[2, 1], add_rfp_mask=False, um_per_pixel=um_per_pixel)
+plot_two_random_rois(adata, 2, ax[0, 4], ax[0, 5], add_rfp_mask=False, um_per_pixel=um_per_pixel)
+plot_two_random_rois(adata, 0, ax[1, 4], ax[1, 5], add_rfp_mask=False, um_per_pixel=um_per_pixel)
+plot_two_random_rois(adata, 3, ax[2, 4], ax[2, 5], add_rfp_mask=False, um_per_pixel=um_per_pixel)
+plot_two_random_rois(adata, 1, ax[2, 2], ax[2, 3], add_rfp_mask=False, um_per_pixel=um_per_pixel)
 
 # fig.savefig('figures/fig2/multipanel_embedding_rois_phase.pdf', bbox_inches='tight', dpi=300)
 
@@ -376,7 +501,7 @@ plt.show()
 ### Plot large ROIs and annotate them with multiple SIFT keypoints colored by K-means cluster ID
 
 ```python
-def plot_large_roi_w_keypoints(df, ax, well_id, donor_id, time_point, roi_center, roi_radius):
+def plot_large_roi_w_keypoints(df, ax, well_id, donor_id, time_point, roi_center, roi_radius, um_per_pixel=4.975):
     '''
     Given a specific image, ROI within that image, and full set of SIFT descriptors for that ROI, plot the SIFT keypoints on top of the bright field + RFP image
 
@@ -396,6 +521,8 @@ def plot_large_roi_w_keypoints(df, ax, well_id, donor_id, time_point, roi_center
         center of the ROI in x-y coordinates
     roi_radius : int
         radius of the ROI in pixels
+    um_per_pixel : float
+        number of microns per pixel
     '''
     # subset the dataframe to the specified well_id, donor_id, and time
     df = df[(df['well_id']==well_id) & (df['donor_id']==donor_id) & (df['time']==time_point)]
@@ -448,17 +575,20 @@ def plot_large_roi_w_keypoints(df, ax, well_id, donor_id, time_point, roi_center
     # offset the x and y tick labels by the ROI center values
     xtick_labels = [tick.get_text() for tick in ax.get_xticklabels()]
     ytick_labels = [tick.get_text() for tick in ax.get_yticklabels()]
-    ax.set_xticklabels([str(int(label) + roi_center[0]) for label in xtick_labels])
-    ax.set_yticklabels([str(int(label) + roi_center[1]) for label in ytick_labels])
+    ax.set_xticklabels([str(int((int(label) + roi_center[0]) * um_per_pixel)) for label in xtick_labels])
+    ax.set_yticklabels([str(int((int(label) + roi_center[1]) * um_per_pixel)) for label in ytick_labels])
+
+    ax.set_xlabel('x (μm)')
+    ax.set_ylabel('y (μm)')
     
     return ax
 
 fig, ax = plt.subplots(2, 2, figsize=(8, 8), tight_layout=True)
 ax = ax.flatten()
-plot_large_roi_w_keypoints(adata_full.obs, ax[0], well_id='H9', donor_id=1, time_point=5, roi_center=(500,500), roi_radius=200)
-plot_large_roi_w_keypoints(adata_full.obs, ax[1], well_id='H9', donor_id=1, time_point=55, roi_center=(500,500), roi_radius=200)
-plot_large_roi_w_keypoints(adata_full.obs, ax[2], well_id='B5', donor_id=1, time_point=5, roi_center=(300,300), roi_radius=200)
-plot_large_roi_w_keypoints(adata_full.obs, ax[3], well_id='B5', donor_id=1, time_point=55, roi_center=(300,300), roi_radius=200)
+plot_large_roi_w_keypoints(adata_full.obs, ax[0], well_id='H9', donor_id=1, time_point=10, roi_center=(500,500), roi_radius=200, um_per_pixel=um_per_pixel)
+plot_large_roi_w_keypoints(adata_full.obs, ax[1], well_id='H9', donor_id=1, time_point=110, roi_center=(500,500), roi_radius=200, um_per_pixel=um_per_pixel)
+plot_large_roi_w_keypoints(adata_full.obs, ax[2], well_id='B5', donor_id=1, time_point=10, roi_center=(300,300), roi_radius=200, um_per_pixel=um_per_pixel)
+plot_large_roi_w_keypoints(adata_full.obs, ax[3], well_id='B5', donor_id=1, time_point=110, roi_center=(300,300), roi_radius=200, um_per_pixel=um_per_pixel)
 
 # fig.savefig('figures/fig2/large_roi_w_keypoints.pdf', bbox_inches='tight', dpi=300)
 
@@ -522,8 +652,8 @@ def plot_entire_well(df, ax, well_id, donor_id, time_point, trim=100, rfp=False)
 ```python
 fig, ax = plt.subplots(1, 2, figsize=(12, 6), tight_layout=True)
 ax = ax.flatten()
-plot_entire_well(adata_full.obs, ax[0], well_id='B4', donor_id=1, time_point=45, trim=100, rfp=False)
-plot_entire_well(adata_full.obs, ax[1], well_id='B4', donor_id=1, time_point=45, trim=100, rfp=True)
+plot_entire_well(adata_full.obs, ax[0], well_id='B4', donor_id=1, time_point=90, trim=100, rfp=False)
+plot_entire_well(adata_full.obs, ax[1], well_id='B4', donor_id=1, time_point=90, trim=100, rfp=True)
 # fig.savefig('figures/B4_donor1_time45.pdf', dpi=300, bbox_inches='tight')
 plt.show()
 ```
@@ -579,8 +709,8 @@ Keypoints belonging to edge clusters will have a larger distance from the center
 ```python
 # use the xy-coordinates of each SIFT descriptor to find its radius (in pixels) away from the center of the image
 # start by shifting x and y coordinates to be centered at 0,0
-adata.obs['x_centered'] = adata.obs['x'] - adata.obs['x'].mean()
-adata.obs['y_centered'] = adata.obs['y'] - adata.obs['y'].mean()
+adata.obs['x_centered'] = adata.obs['x_um'] - adata.obs['x_um'].mean()
+adata.obs['y_centered'] = adata.obs['y_um'] - adata.obs['y_um'].mean()
 # compute the radius of each SIFT descriptor
 adata.obs['distance_from_center'] = np.sqrt(adata.obs['x_centered']**2 + adata.obs['y_centered']**2)
 adata.obs['distance_from_center'].describe()
@@ -628,14 +758,14 @@ ax = ax.flatten()
 sns.violinplot(ax=ax[0], data=adata.obs, x='kmeans_7', y='distance_from_center', hue='kmeans_7', legend=False, palette='Dark2')
 ax[0].set_title('SIFT keypoint position in well')
 ax[0].set_xlabel('K-means cluster ID')
-ax[0].set_ylabel('Distance from center of well (pixels)')
+ax[0].set_ylabel('Distance from center of well (μm)')
 sns.despine(ax=ax[0])
 
 # bar plot of the variance of the radius from center
 sns.barplot(ax=ax[1], data=cluster_positions_df, x='kmeans_7', y='distance_from_center_stdev', hue='kmeans_7', legend=False, palette='Dark2')
 ax[1].set_title('SIFT keypoint position standard deviation per cluster')
 ax[1].set_xlabel('K-means cluster ID')
-ax[1].set_ylabel('Standard deviation of distance from center of well (pixels)')
+ax[1].set_ylabel('Standard deviation of distance from center of well (μm)')
 sns.despine(ax=ax[1])
 plt.show()
 ```
@@ -664,13 +794,18 @@ stats.ttest_ind(non_edge_df['distance_from_center'], edge_df['distance_from_cent
 ```
 
 ```python
+# convert the roi_radius column to units of um
+adata.obs['roi_radius_um'] = adata.obs['roi_radius'] * um_per_pixel
+```
+
+```python
 # plot the PCA embedding annotated by roi_radius
 fig, ax = plt.subplots(1, 1, figsize=(4, 4), tight_layout=True)
-sns.scatterplot(data=adata.obs, x='PC1', y='PC2', hue='roi_radius', palette='coolwarm', ax=ax, s=1, alpha=0.7)
+sns.scatterplot(data=adata.obs, x='PC1', y='PC2', hue='roi_radius_um', palette='coolwarm', ax=ax, s=1, alpha=0.7)
 ax.set_xlabel('PC1')
 ax.set_ylabel('PC2')
 ax.set_title('SIFT embedding (D={})'.format(num_rows))
-ax.legend(title='ROI radius (pixels)')
+ax.legend(title='ROI radius (μm)', markerscale=5)
 sns.despine(ax=ax)
 ax.set_xticks([])
 ax.set_yticks([])
@@ -680,8 +815,8 @@ plt.show()
 ```python
 # plot a histogram of roi_radius
 fig, ax = plt.subplots(1, 1, figsize=(4, 4), tight_layout=True)
-sns.histplot(data=adata.obs, x='roi_radius', bins=20, ax=ax)
-ax.set_xlabel('ROI radius (pixels)')
+sns.histplot(data=adata.obs, x='roi_radius_um', bins=20, ax=ax)
+ax.set_xlabel('ROI radius (μm)')
 ax.set_ylabel('Count')
 ax.set_title('Cancer cell abundance around SIFT keypoints'.format(num_rows))
 sns.despine(ax=ax)
@@ -732,7 +867,7 @@ sns.scatterplot(data=adata.obs, x='PC1', y='PC2', hue='roi_rfp_pos_frac', palett
 ax[0].set_xlabel('PC1')
 ax[0].set_ylabel('PC2')
 ax[0].set_title('SIFT embedding (D={})'.format(num_rows))
-ax[0].legend(title='ROI RFP+\npixel fraction')
+ax[0].legend(title='ROI RFP+\npixel fraction', markerscale=5)
 sns.despine(ax=ax[0])
 ax[0].set_xticks([])
 ax[0].set_yticks([])
@@ -760,11 +895,11 @@ plt.show()
 # plot the PCA embedding annotated by roi_radius
 fig, ax = plt.subplots(1, 2, figsize=(8, 4), tight_layout=True)
 
-sns.scatterplot(data=adata.obs, x='PC1', y='PC2', hue='roi_radius', palette='coolwarm', ax=ax[0], s=1, alpha=0.7, rasterized=True)
+sns.scatterplot(data=adata.obs, x='PC1', y='PC2', hue='roi_radius_um', palette='coolwarm', ax=ax[0], s=1, alpha=0.7, rasterized=True)
 ax[0].set_xlabel('PC1')
 ax[0].set_ylabel('PC2')
 ax[0].set_title('SIFT embedding (D={})'.format(num_rows))
-ax[0].legend(title='ROI radius (pixels)', markerscale=5)
+ax[0].legend(title='ROI radius (μm)', markerscale=5)
 sns.despine(ax=ax[0])
 ax[0].set_xticks([])
 ax[0].set_yticks([])
@@ -795,6 +930,7 @@ ax[0].set_title('SIFT embedding (D={})'.format(num_rows))
 sns.despine(ax=ax[0])
 ax[0].set_xticks([])
 ax[0].set_yticks([])
+ax[0].legend(title='RFP Moran\'s I', markerscale=5)
 
 sns.violinplot(data=adata.obs, x='kmeans_7', y='roi_rfp_morans_I', hue='kmeans_7', palette='Dark2', legend=False, ax=ax[1])
 ax[1].set_xlabel('K-means cluster ID')
@@ -812,6 +948,9 @@ ax[0].set_xlabel('PC1')
 ax[0].set_ylabel('PC2')
 ax[0].set_title('SIFT embedding (D={})'.format(num_rows))
 sns.despine(ax=ax[0])
+ax[0].set_xticks([])
+ax[0].set_yticks([])
+ax[0].legend(title='BF Moran\'s I', markerscale=5)
 
 sns.violinplot(data=adata.obs, x='kmeans_7', y='roi_bf_morans_I', hue='kmeans_7', palette='Dark2', legend=False, ax=ax[1])
 ax[1].set_xlabel('K-means cluster ID')
@@ -864,7 +1003,7 @@ plt.show()
 ```python
 
 def boxplots_by_cluster_group(adata, cluster_color_dict=cluster_color_dict, ycol='roi_rfp_pos_frac', huecol='kmeans_7', ylabel='ROI RFP+ fraction', title=None, legend=True):
-    fig, ax = plt.subplots(1, 3, figsize=(4, 4), tight_layout=True, sharey=True)
+    fig, ax = plt.subplots(1, 3, figsize=(4, 2.5), tight_layout=True, sharey=True)
 
     cluster_groups = ['edges', 'singlets', 'aggregates']
 
@@ -899,10 +1038,10 @@ def boxplots_by_cluster_group(adata, cluster_color_dict=cluster_color_dict, ycol
     return fig, ax
 
 fig, ax = boxplots_by_cluster_group(adata, ycol='roi_rfp_pos_frac', huecol='kmeans_7', ylabel='ROI RFP+ fraction', title='Cancer cell abundance near SIFT keypoints')
-# fig.savefig('figures/fig3/rfp_frac_boxplots.pdf', bbox_inches='tight', dpi=300)
+fig.savefig('figures/fig3/rfp_frac_boxplots.pdf', bbox_inches='tight', dpi=300)
 plt.show()
-fig, ax = boxplots_by_cluster_group(adata, ycol='distance_from_center', huecol='kmeans_7', ylabel='Distance from center (pixels)', title='SIFT keypoint position in well')
-# fig.savefig('figures/fig3/keypoint_position_boxplots.pdf', bbox_inches='tight', dpi=300)
+fig, ax = boxplots_by_cluster_group(adata, ycol='distance_from_center', huecol='kmeans_7', ylabel='Distance from center (μm)', title='SIFT keypoint position in well')
+fig.savefig('figures/fig3/keypoint_position_boxplots.pdf', bbox_inches='tight', dpi=300)
 plt.show()
 ```
 
@@ -936,6 +1075,159 @@ sns.despine(ax=ax)
 plt.show()
 ```
 
+```python
+adata.obs.columns
+```
+
+```python
+cluster_id = 1
+x_axis_var = 'time'
+hue_var = 'rasa2ko_titration'
+cluster_df = adata.obs[adata.obs['kmeans_7'] == cluster_id]
+summary_df = []
+for (x_value, hue_value), group in cluster_df.groupby([x_axis_var, hue_var]):
+    # count the number of keypoints (rows) in this group
+    num_keypoints = group.shape[0]
+    # compute the mean and standard deviation of the roi_rfp_pos_frac values in this group
+    mean_roi_rfp_pos_frac = group['roi_rfp_pos_frac'].mean()
+    std_roi_rfp_pos_frac = group['roi_rfp_pos_frac'].std()
+    # compute the mean and standard deviation of the roi_rfp_morans_I values in this group
+    mean_roi_rfp_morans_I = group['roi_rfp_morans_I'].mean()
+    std_roi_rfp_morans_I = group['roi_rfp_morans_I'].std()
+    # compute the mean and standard deviation of the roi_bf_morans_I values in this group
+    mean_roi_bf_morans_I = group['roi_bf_morans_I'].mean()
+    std_roi_bf_morans_I = group['roi_bf_morans_I'].std()
+    # save these values to a dataframe
+    temp_df = pd.DataFrame({x_axis_var: [x_value],
+                            hue_var: [hue_value],
+                            'num_keypoints': [num_keypoints],
+                            'roi_rfp_pos_frac_mean': [mean_roi_rfp_pos_frac],
+                            'roi_rfp_pos_frac_stdev': [std_roi_rfp_pos_frac],
+                            'roi_rfp_morans_I_mean': [mean_roi_rfp_morans_I],
+                            'roi_rfp_morans_I_stdev': [std_roi_rfp_morans_I],
+                            'roi_bf_morans_I_mean': [mean_roi_bf_morans_I],
+                            'roi_bf_morans_I_stdev': [std_roi_bf_morans_I]})
+    summary_df.append(temp_df)
+summary_df = pd.concat(summary_df, ignore_index=True)
+summary_df
+```
+
+```python
+# plot the number of cluster X keypoints over time, split by experimental condition
+
+def mean_confidence_interval(data, confidence=0.95):
+    a = 1.0 * np.array(data)
+    n = len(a)
+    m, se = np.mean(a), stats.sem(a)
+    h = se * stats.t.ppf((1 + confidence) / 2., n-1)
+    return m, m-h, m+h
+
+def plot_confidence_interval(adata, x_col, y_col, hue_col, cluster_id,
+                             ax=None, confidence=0.95, 
+                             max_x=np.inf, min_y=-np.inf, max_y=np.inf,
+                             title=None, x_label=None, y_label=None,
+                             palette='viridis'):
+    
+    if ax is None:
+        fig, ax = plt.subplots()
+    
+    cluster_df = adata.obs[adata.obs['kmeans_7'] == cluster_id]
+
+    # set the color palette
+    pal = sns.color_palette(palette, n_colors=len(cluster_df[hue_col].unique()))
+    i = 0
+    for hue_value, df in cluster_df.groupby(hue_col):
+        # find the unique x values, sort them, and take only the x values that are less than max_x
+        unique_xs = df[x_col].unique()
+        unique_xs = np.sort(unique_xs)
+        unique_xs = unique_xs[unique_xs <= max_x]
+
+        # placeholder for the mean, lower bound, and upper bound
+        interval_holder0 = []
+        for x in unique_xs:
+            # find the mean and the confidence interval for each x value
+            temp_df = df[df[x_col] == x]
+            mean0, blb0, bub0 = mean_confidence_interval(temp_df[y_col], confidence=confidence)
+            interval0 = [mean0, max(blb0, min_y), min(bub0, max_y)]
+            interval_holder0.append(interval0)
+
+        # convert the placeholder to an array
+        interval_holder0 = np.array(interval_holder0)
+
+        # plot the confidence interval
+        ax.fill_between(unique_xs, interval_holder0[:,1], interval_holder0[:,2], alpha=0.6, label=hue_value, color=pal[i])
+
+        i += 1
+
+    sns.despine(ax=ax)
+    ax.set_title(title)
+    ax.set_ylabel(y_label)
+    ax.set_xlabel(x_label)
+    ax.legend(title=hue_col)
+
+
+```
+
+```python
+clusters_to_plot = [1, 4, 5, 6]
+
+fig, ax = plt.subplots(2, len(clusters_to_plot), figsize=(3*len(clusters_to_plot), 6), tight_layout=True)
+
+for i, cluster_id in enumerate(clusters_to_plot):
+    plot_confidence_interval(adata, x_col='time', y_col='roi_rfp_pos_frac', hue_col='rasa2ko_titration', cluster_id=cluster_id,
+                             title=f'Cluster {cluster_id}: RFP+ pixel fraction over time',
+                             x_label='Time (frame)', y_label='RFP+ pixel fraction (95% CI)',
+                             ax=ax[0, i], confidence=0.95, max_x=64, min_y=0, max_y=1, palette='PuBu')
+    plot_confidence_interval(adata, x_col='time', y_col='roi_rfp_pos_frac', hue_col='et_ratio', cluster_id=cluster_id,
+                             title=f'Cluster {cluster_id}: RFP+ pixel fraction over time',
+                             x_label='Time (frame)', y_label='RFP+ pixel fraction (95% CI)',
+                             ax=ax[1, i], confidence=0.95, max_x=64, min_y=0, max_y=1, palette='YlGn')
+
+plt.show()
+```
+
+```python
+def plot_keypoint_count_over_time(adata, cluster_id, x_axis_var, hue_var, 
+                                  ax=None, confidence=0.95,
+                                  max_x=np.inf,
+                                  title=None,
+                                  x_label=None,
+                                  y_label=None,
+                                  palette='viridis'):
+    # subset the adata object to just the rows from the specified cluster_id
+    cluster_df = adata.obs[adata.obs['kmeans_7'] == cluster_id]
+
+    # create a dataframe to hold the summary statistics
+    summary_df = []
+    # group the dataframe by the x_axis_var and hue_var
+    # and compute the mean and standard deviation of the roi_rfp_pos_frac values in each group
+    for (x_value, hue_value), group in cluster_df.groupby([x_axis_var, hue_var]):
+        # count the number of keypoints (rows) in this group
+        num_keypoints = group.shape[0]
+        # save these values to a dataframe
+        temp_df = pd.DataFrame({x_axis_var: [x_value],
+                                hue_var: [hue_value],
+                                'num_keypoints': [num_keypoints]})
+        summary_df.append(temp_df)
+    summary_df = pd.concat(summary_df, ignore_index=True)
+
+    if ax is None:
+        fig, ax = plt.subplots()
+
+    # plot the y_col values over time, split by hue_var
+    plot_confidence_interval(summary_df, x_col=x_axis_var, y_col='num_keypoints', hue_col=hue_var, 
+                             ax=ax, confidence=confidence, max_x=max_x, palette=palette)
+
+    sns.despine(ax=ax)
+    ax.set_title(title)
+    ax.set_ylabel(y_label)
+    ax.set_xlabel(x_label)
+    ax.legend(title=hue_var)
+
+
+# plot_keypoint_count_over_time(adata, cluster_id=1, x_axis_var='time', hue_var='rasa2ko_titration')
+```
+
 ### Show the `k=7` clustering results alongside the other experimental covariates
 
 This figure will accompany the statistical testing to show which clusters are enriched or depleted in certain experimental conditions. We expect there to be very minimal effect of donor and replicate (i.e. they are the negative controls) but there should be some effects over ratio, titration, and time.
@@ -946,7 +1238,7 @@ fig, ax = plt.subplots(2, 3, figsize=(8, 4), tight_layout=True)
 ax = ax.flatten()
 
 hue_cols = ['kmeans_7', 'replicate_id', 'donor_id', 'time', 'rasa2ko_titration', 'et_ratio']
-hue_titles = ['K-means', 'Replicate ID', 'Donor ID', 'Time', 'RASA2KO\ntitration', 'E:T ratio']
+hue_titles = ['K-means', 'Replicate ID', 'Donor ID', 'Time (hour)', 'RASA2KO\ntitration', 'E:T ratio']
 cmaps = ['Dark2', 'Dark2', 'Dark2', 'flare', 'PuBu', 'YlGn']
 for i, hue in enumerate(hue_cols):
     # randomize the order of adata.obs so that one color isn't consistently plotted on top of another
@@ -1028,6 +1320,24 @@ results_df[(results_df['var_name'] == 'et_ratio')]
 ```
 
 ```python
+import sys
+sys.float_info.min
+```
+
+```python
+
+
+# replace NaN values of p_adj with the smallest possible float
+results_df['p_adj'] = results_df['p_adj'].fillna(sys.float_info.min)
+# replace 0 values of p_adj with the smallest possible float
+results_df['p_adj'] = results_df['p_adj'].replace(0, sys.float_info.min)
+# recompute the -log10(p_adj) now that NaN values have been replaced
+results_df['-log10(p_adj)'] = -np.log10(results_df['p_adj'])
+
+results_df[(results_df['var_name'] == 'et_ratio')]
+```
+
+```python
 # make a volcano plot of results_df where we show -log10(p_adj) on the y axis
 # and the effect_size on the x axis
 fig, ax = plt.subplots(1, 3, figsize=(8, 2), tight_layout=True)
@@ -1059,6 +1369,7 @@ ax = ax.flatten()
 
 color_threshold = 10
 text_threshold = 50
+text_threshold = np.inf
 
 var_name_dict = {'time': 'time', 'donor_id': 'donor', 'replicate_id': 'replicate',
                  'rasa2ko_titration': 'RASA2KO', 'et_ratio': 'E:T'}
@@ -1116,12 +1427,12 @@ for i, plot_df in enumerate([plot1_df, plot2_df]):
     ax[i].set_ylim(-10, 250)
 
 
-ax[0].set_xlabel('Effect size (log2 odds ratio)\n<--depleted | enriched-->')
-ax[0].set_ylabel('Chi-square test\n-log10(p_adj)')
+ax[0].set_xlabel('Effect size (log$_2$ odds ratio)\n<--depleted | enriched-->')
+ax[0].set_ylabel('Chi-square test\n-log$\mathrm{_{10}(p_{adj})}$')
 ax[0].set_title('Categorical covariates')
 
 ax[1].set_xlabel("Effect size (Cohen's D)\n<--depleted | enriched-->")
-ax[1].set_ylabel('Kruskal-Wallis test\n-log10(p_adj)')
+ax[1].set_ylabel('Kruskal-Wallis test\n-log$\mathrm{_{10}(p_{adj})}$')
 ax[1].set_title('Continuous covariates')
 
 # fig.savefig('figures/fig4/volcanos.pdf', bbox_inches='tight', dpi=300)
@@ -1132,6 +1443,216 @@ plt.show()
 ```python
 # save results_df to analysis file
 # results_df.to_csv('analysis/sift_volcano_table.csv')
+```
+
+### Look into relationship with spatial entropy and number of aggregate keypoints (clusters 5 + 6) in each image
+
+```python
+adata_full.obs.columns.values
+```
+
+```python
+adata.obs.columns.values
+```
+
+```python
+adata_full.obs.shape
+```
+
+```python
+adata.obs[['donor_id', 'time', 'well_id', 'rasa2ko_titration', 'et_ratio', 'entropy', 'p_areas']].drop_duplicates().shape
+```
+
+```python
+adata.obs.filename.unique().shape
+```
+
+```python
+image_df = []
+
+# loop through each unique image (filename)
+for filename, chunk in adata_full.obs.groupby('filename'):
+
+    # create a temporary dataframe to hold the donor_id, time, well_id, rasa2ko_titration, et_ratio, entropy, p_areas for this image
+    temp_df = pd.DataFrame(chunk[['donor_id', 'time', 'well_id', 'rasa2ko_titration', 'et_ratio', 'entropy', 'p_areas', 'filename']].drop_duplicates())
+
+    # count the number of keypoints belonging to each kmeans_7 cluster
+    cluster_counts = chunk.groupby('kmeans_7').size()
+    # add the counts to the temporary dataframe
+    for i, count in cluster_counts.items():
+        temp_df['n_keypoints_cluster_{}'.format(i)] = count
+
+    # append the temporary dataframe to the image_df
+    image_df.append(temp_df)
+
+image_df = pd.concat(image_df, ignore_index=True)
+image_df
+```
+
+```python
+image_df['n_keypoints_aggregates'] = image_df['n_keypoints_cluster_5'] + image_df['n_keypoints_cluster_6']
+image_df['n_keypoints_singlets'] = image_df['n_keypoints_cluster_1'] + image_df['n_keypoints_cluster_4']
+image_df['n_keypoints_edges'] = image_df['n_keypoints_cluster_2'] + image_df['n_keypoints_cluster_3']
+image_df['n_keypoints_total'] = image_df['n_keypoints_aggregates'] + image_df['n_keypoints_singlets'] + image_df['n_keypoints_edges'] + image_df['n_keypoints_cluster_0']
+
+# compute the fraction of keypoints that are singlets, aggregates, and edges
+image_df['frac_singlets'] = image_df['n_keypoints_singlets'] / image_df['n_keypoints_total']
+image_df['frac_aggregates'] = image_df['n_keypoints_aggregates'] / image_df['n_keypoints_total']
+image_df['frac_edges'] = image_df['n_keypoints_edges'] / image_df['n_keypoints_total']
+
+image_df
+```
+
+```python
+fig, ax = plt.subplots(2, 3, figsize=(8, 6), tight_layout=True)
+ax = ax.ravel()
+
+def plot_scatter_with_line_of_best_fit(ax, x, y, hue, alpha=0.5, s=1, legend=False):
+    sns.scatterplot(ax=ax, x=x, y=y, hue=hue, alpha=alpha, s=s, legend=legend, rasterized=True)
+    ax = sns.regplot(ax=ax, x=x, y=y, scatter=False, line_kws={'color': 'grey', 'lw': 1, 'ls': '--'})
+    result = stats.pearsonr(x, y)
+    ax.text(0.5, 0.9, 'r={:.2f}, p={:.0e}'.format(result[0], result[1]), transform=ax.transAxes, fontsize=8, ha='center', va='center')
+    return ax
+
+plot_scatter_with_line_of_best_fit(ax[0], image_df['frac_singlets'], image_df['entropy'], image_df['et_ratio'], alpha=0.5, s=1, legend=True)
+plot_scatter_with_line_of_best_fit(ax[1], image_df['frac_aggregates'], image_df['entropy'], image_df['et_ratio'], alpha=0.5, s=1)
+plot_scatter_with_line_of_best_fit(ax[2], image_df['frac_edges'], image_df['entropy'], image_df['et_ratio'], alpha=0.5, s=1)
+
+plot_scatter_with_line_of_best_fit(ax[3], image_df['frac_singlets'], image_df['p_areas'], image_df['et_ratio'], alpha=0.5, s=1)
+plot_scatter_with_line_of_best_fit(ax[4], image_df['frac_aggregates'], image_df['p_areas'], image_df['et_ratio'], alpha=0.5, s=1)
+plot_scatter_with_line_of_best_fit(ax[5], image_df['frac_edges'], image_df['p_areas'], image_df['et_ratio'], alpha=0.5, s=1)
+
+# # plot the fraction of the 3 cluster categories vs entropy
+# sns.scatterplot(ax=ax[0],data=image_df, x='frac_singlets', y='entropy', hue='et_ratio', alpha=0.5, s=1)
+# sns.scatterplot(ax=ax[1], data=image_df, x='frac_aggregates', y='entropy', hue='et_ratio', alpha=0.5, s=1)
+# sns.scatterplot(ax=ax[2],data=image_df, x='frac_edges', y='entropy', hue='et_ratio', alpha=0.5, s=1)
+
+# # plot the fraction of the 3 cluster categories vs p_areas
+# sns.scatterplot(ax=ax[3],data=image_df, x='frac_singlets', y='p_areas', hue='et_ratio', alpha=0.5, s=1)
+# sns.scatterplot(ax=ax[4], data=image_df, x='frac_aggregates', y='p_areas', hue='et_ratio', alpha=0.5, s=1)
+# sns.scatterplot(ax=ax[5],data=image_df, x='frac_edges', y='p_areas', hue='et_ratio', alpha=0.5, s=1)
+
+
+
+for a in ax:
+    sns.despine(ax=a)
+    a.set_title('N={} images'.format(image_df.shape[0]))
+    # a.legend(title='E:T ratio', markerscale=5)
+
+ax[0].legend(title='E:T ratio', markerscale=5)
+for i in range(0, 3):
+    ax[i].set_ylabel('RFP spatial entropy')
+for i in range(3, 6):
+    ax[i].set_ylabel('RFP+ area (μm$^2$)')
+for i in [0, 3]:
+    ax[i].set_xlabel('Fraction of SIFT keypoints that are singlets')
+for i in [1, 4]:
+    ax[i].set_xlabel('Fraction of SIFT keypoints that are aggregates')
+for i in [2, 5]:
+    ax[i].set_xlabel('Fraction of SIFT keypoints that are edges')
+
+plt.show()
+```
+
+```python
+# create a separate set of plots that compares frac_aggregates vs entropy but each subplot is a different E:T ratio
+et_ratio_values = sorted(image_df['et_ratio'].unique())
+fig, ax = plt.subplots(1, len(et_ratio_values), figsize=(4*len(et_ratio_values), 4), tight_layout=True)
+for i, et_ratio in enumerate(et_ratio_values):
+    subset_df = image_df[image_df['et_ratio'] == et_ratio]
+    plot_scatter_with_line_of_best_fit(ax[i], subset_df['frac_aggregates'], subset_df['entropy'], subset_df['rasa2ko_titration'], alpha=0.5, s=5)
+    ax[i].set_title('E:T ratio={}'.format(et_ratio))
+    ax[i].set_xlabel('Fraction of SIFT keypoints that are aggregates')
+    ax[i].set_ylabel('RFP spatial entropy')
+    sns.despine(ax=ax[i])
+    ax[i].legend(title='RASA2KO titration', markerscale=2)
+
+plt.show()
+```
+
+```python
+# compute the pearson correlation coefficient between frac_aggregates and entropy at each E:T ratio and plot as line plot
+correlation_df = []
+for et_ratio in et_ratio_values:
+    subset_df = image_df[image_df['et_ratio'] == et_ratio]
+    r, p = stats.pearsonr(subset_df['frac_aggregates'], subset_df['entropy'])
+    temp_df = pd.DataFrame({'et_ratio': [et_ratio], 'pearson_r': [r], 'p_value': [p]})
+    correlation_df.append(temp_df)
+correlation_df = pd.concat(correlation_df)
+fig, ax = plt.subplots(1, 1, figsize=(4, 4), tight_layout=True)
+sns.lineplot(ax=ax, x='et_ratio', y='pearson_r', data=correlation_df, marker='o')
+ax.set_xlabel('E:T ratio')
+ax.set_ylabel('Pearson r')
+ax.set_title('Correlation between fraction of SIFT aggregate keypoints\nand RFP spatial entropy')
+sns.despine(ax=ax)
+plt.show()
+```
+
+```python
+fig, ax = plt.subplots(2, 3, figsize=(8, 5), tight_layout=True)
+ax = ax.ravel()
+
+plot_scatter_with_line_of_best_fit(ax[0], image_df['frac_edges'], image_df['entropy'], image_df['et_ratio'], alpha=0.5, s=1, legend=True)
+plot_scatter_with_line_of_best_fit(ax[1], image_df['frac_singlets'], image_df['entropy'], image_df['et_ratio'], alpha=0.5, s=1)
+plot_scatter_with_line_of_best_fit(ax[2], image_df['frac_aggregates'], image_df['entropy'], image_df['et_ratio'], alpha=0.5, s=1)
+
+
+subset_df = image_df[image_df['et_ratio'] == image_df['et_ratio'].values.min()]
+plot_scatter_with_line_of_best_fit(ax[3], subset_df['frac_aggregates'], subset_df['entropy'], subset_df['rasa2ko_titration'], alpha=0.5, s=1, legend=True)
+ax[3].set_title('E:T ratio={}'.format(subset_df['et_ratio'].values[0]))
+
+subset_df = image_df[image_df['et_ratio'] == image_df['et_ratio'].values.max()]
+plot_scatter_with_line_of_best_fit(ax[5], subset_df['frac_aggregates'], subset_df['entropy'], subset_df['rasa2ko_titration'], alpha=0.5, s=1, legend=True)
+ax[5].set_title('E:T ratio={}'.format(subset_df['et_ratio'].values[0]))
+
+sns.lineplot(ax=ax[4], x='et_ratio', y='pearson_r', data=correlation_df, marker='o')
+ax[4].set_xlabel('E:T ratio')
+ax[4].set_ylabel('Pearson r')
+ax[4].set_title('Correlation between fraction of SIFT\naggregate keypoints and RFP spatial entropy')
+
+for a in ax:
+    sns.despine(ax=a)
+
+for i in [0, 1]:
+    ax[i].set_ylabel('RFP spatial entropy\n<--clustered | random-->')
+for i in [2,3,5]:
+    ax[i].set_xlabel('Fraction of SIFT keypoints that are aggregates')
+    ax[i].set_ylabel('RFP spatial entropy\n<--clustered | random-->')
+for i in [0,1,2]:
+    ax[i].set_title('N={} images'.format(image_df.shape[0]))
+for i in [3,5]:
+    ax[i].legend(title='RASA2KO %', markerscale=5)
+
+ax[0].legend(title='E:T ratio', markerscale=5)
+ax[0].set_xlabel('Fraction of SIFT keypoints that are edges')
+ax[1].set_xlabel('Fraction of SIFT keypoints that are singlets')
+
+fig.savefig('figures/fig3/sift_cluster_fraction_vs_entropy.pdf', bbox_inches='tight', dpi=300)
+
+plt.show()
+```
+
+```python
+# compute the pearson correlation coefficient between frac_aggregates and entropy for each E:T ratio and rasa2ko_titration combination, then plot as a heatmap
+correlation_df = []
+for et_ratio, et_chunk in image_df.groupby('et_ratio'):
+    for rasa2ko_titration, rasa_chunk in et_chunk.groupby('rasa2ko_titration'):
+        if rasa_chunk.shape[0] < 5:
+            continue
+        r, p = stats.pearsonr(rasa_chunk['frac_aggregates'], rasa_chunk['entropy'])
+        temp_df = pd.DataFrame({'et_ratio': [et_ratio],
+                                'rasa2ko_titration': [rasa2ko_titration],
+                                'pearson_r': [r],
+                                'p_value': [p]})
+        correlation_df.append(temp_df)
+correlation_df = pd.concat(correlation_df)
+correlation_dfpivot = correlation_df.pivot(index='rasa2ko_titration', columns='et_ratio', values='pearson_r')
+plt.figure(figsize=(6, 4))
+sns.heatmap(correlation_dfpivot, annot=True, cmap='coolwarm', center=0)
+plt.title('Pearson correlation between\nfraction of aggregates and RFP spatial entropy')
+plt.xlabel('E:T ratio')
+plt.ylabel('RASA2KO titration')
+plt.show()
 ```
 
 ```python
